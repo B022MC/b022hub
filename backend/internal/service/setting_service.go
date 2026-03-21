@@ -14,8 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	"github.com/B022MC/b022hub/internal/config"
+	infraerrors "github.com/B022MC/b022hub/internal/pkg/errors"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -151,6 +151,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeySoraClientEnabled,
 		SettingKeyCustomMenuItems,
 		SettingKeyLinuxDoConnectEnabled,
+		SettingKeyLinuxDoCreditEnabled,
+		SettingKeyLinuxDoCreditExchangeRate,
 		SettingKeyBackendModeEnabled,
 	}
 
@@ -183,9 +185,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		TotpEnabled:                      settings[SettingKeyTotpEnabled] == "true",
 		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
-		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
+		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "b022hub"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
-		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
+		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, ""),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
 		DocURL:                           settings[SettingKeyDocURL],
@@ -196,6 +198,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SoraClientEnabled:                settings[SettingKeySoraClientEnabled] == "true",
 		CustomMenuItems:                  settings[SettingKeyCustomMenuItems],
 		LinuxDoOAuthEnabled:              linuxDoEnabled,
+		LinuxDoCreditEnabled:             settings[SettingKeyLinuxDoCreditEnabled] == "true",
+		LinuxDoCreditExchangeRate:        parseSettingFloat64(settings[SettingKeyLinuxDoCreditExchangeRate], 1),
 		BackendModeEnabled:               settings[SettingKeyBackendModeEnabled] == "true",
 	}, nil
 }
@@ -248,6 +252,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		SoraClientEnabled                bool            `json:"sora_client_enabled"`
 		CustomMenuItems                  json.RawMessage `json:"custom_menu_items"`
 		LinuxDoOAuthEnabled              bool            `json:"linuxdo_oauth_enabled"`
+		LinuxDoCreditEnabled             bool            `json:"linuxdo_credit_enabled"`
+		LinuxDoCreditExchangeRate        float64         `json:"linuxdo_credit_exchange_rate"`
 		BackendModeEnabled               bool            `json:"backend_mode_enabled"`
 		Version                          string          `json:"version,omitempty"`
 	}{
@@ -273,6 +279,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		SoraClientEnabled:                settings.SoraClientEnabled,
 		CustomMenuItems:                  filterUserVisibleMenuItems(settings.CustomMenuItems),
 		LinuxDoOAuthEnabled:              settings.LinuxDoOAuthEnabled,
+		LinuxDoCreditEnabled:             settings.LinuxDoCreditEnabled,
+		LinuxDoCreditExchangeRate:        settings.LinuxDoCreditExchangeRate,
 		BackendModeEnabled:               settings.BackendModeEnabled,
 		Version:                          s.version,
 	}, nil
@@ -439,6 +447,12 @@ func (s *SettingService) UpdateSettings(ctx context.Context, settings *SystemSet
 	updates[SettingKeyLinuxDoConnectRedirectURL] = settings.LinuxDoConnectRedirectURL
 	if settings.LinuxDoConnectClientSecret != "" {
 		updates[SettingKeyLinuxDoConnectClientSecret] = settings.LinuxDoConnectClientSecret
+	}
+	updates[SettingKeyLinuxDoCreditEnabled] = strconv.FormatBool(settings.LinuxDoCreditEnabled)
+	updates[SettingKeyLinuxDoCreditClientID] = strings.TrimSpace(settings.LinuxDoCreditClientID)
+	updates[SettingKeyLinuxDoCreditExchangeRate] = strconv.FormatFloat(settings.LinuxDoCreditExchangeRate, 'f', 8, 64)
+	if settings.LinuxDoCreditClientSecret != "" {
+		updates[SettingKeyLinuxDoCreditClientSecret] = strings.TrimSpace(settings.LinuxDoCreditClientSecret)
 	}
 
 	// OEM设置
@@ -678,7 +692,7 @@ func (s *SettingService) IsTotpEncryptionKeyConfigured() bool {
 func (s *SettingService) GetSiteName(ctx context.Context) string {
 	value, err := s.settingRepo.GetValue(ctx, SettingKeySiteName)
 	if err != nil || value == "" {
-		return "Sub2API"
+		return "b022hub"
 	}
 	return value
 }
@@ -734,10 +748,14 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyEmailVerifyEnabled:               "false",
 		SettingKeyRegistrationEmailSuffixWhitelist: "[]",
 		SettingKeyPromoCodeEnabled:                 "true", // 默认启用优惠码功能
-		SettingKeySiteName:                         "Sub2API",
+		SettingKeySiteName:                         "b022hub",
 		SettingKeySiteLogo:                         "",
 		SettingKeyPurchaseSubscriptionEnabled:      "false",
 		SettingKeyPurchaseSubscriptionURL:          "",
+		SettingKeyLinuxDoCreditEnabled:             "false",
+		SettingKeyLinuxDoCreditClientID:            "",
+		SettingKeyLinuxDoCreditClientSecret:        "",
+		SettingKeyLinuxDoCreditExchangeRate:        "1.00000000",
 		SettingKeySoraClientEnabled:                "false",
 		SettingKeyCustomMenuItems:                  "[]",
 		SettingKeyDefaultConcurrency:               strconv.Itoa(s.cfg.Default.UserConcurrency),
@@ -793,9 +811,9 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
 		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
-		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
+		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "b022hub"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
-		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
+		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, ""),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
 		DocURL:                           settings[SettingKeyDocURL],
@@ -864,6 +882,11 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		result.LinuxDoConnectClientSecret = strings.TrimSpace(linuxDoBase.ClientSecret)
 	}
 	result.LinuxDoConnectClientSecretConfigured = result.LinuxDoConnectClientSecret != ""
+	result.LinuxDoCreditEnabled = settings[SettingKeyLinuxDoCreditEnabled] == "true"
+	result.LinuxDoCreditClientID = strings.TrimSpace(settings[SettingKeyLinuxDoCreditClientID])
+	result.LinuxDoCreditClientSecret = strings.TrimSpace(settings[SettingKeyLinuxDoCreditClientSecret])
+	result.LinuxDoCreditClientSecretConfigured = result.LinuxDoCreditClientSecret != ""
+	result.LinuxDoCreditExchangeRate = parseSettingFloat64(settings[SettingKeyLinuxDoCreditExchangeRate], 1)
 
 	// Model fallback settings
 	result.EnableModelFallback = settings[SettingKeyEnableModelFallback] == "true"
@@ -914,6 +937,18 @@ func isFalseSettingValue(value string) bool {
 	default:
 		return false
 	}
+}
+
+func parseSettingFloat64(raw string, fallback float64) float64 {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
 }
 
 func parseDefaultSubscriptions(raw string) []DefaultSubscriptionSetting {

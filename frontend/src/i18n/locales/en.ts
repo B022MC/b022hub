@@ -4,15 +4,109 @@ export default {
     viewOnGithub: 'View on GitHub',
     viewDocs: 'View Documentation',
     docs: 'Docs',
+    nav: {
+      home: 'Home',
+      claude: 'Claude',
+      codex: 'Codex',
+      gemini: 'Gemini',
+      more: 'Capabilities',
+      features: 'Highlights',
+      scenarios: 'Use Cases',
+      models: 'Models'
+    },
     switchToLight: 'Switch to Light Mode',
     switchToDark: 'Switch to Dark Mode',
     dashboard: 'Dashboard',
     login: 'Login',
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
-    // User-focused value proposition
-    heroSubtitle: 'One Key, All AI Models',
-    heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
+    heroEyebrow: 'Built for CLI workflows, runtime routing, and team-ready access',
+    heroSubtitle: 'A unified AI runtime hub for Claude, Codex, and Gemini',
+    heroPrefix: 'Point your AI workflow at',
+    heroDescription: 'b022hub puts Claude Code, OpenAI Codex, and Gemini CLI behind one runtime entry. You keep a single API domain, one key strategy, and one routing layer, while landing on an interface that feels close to Luck Hub.',
+    heroTags: {
+      gateway: 'Unified gateway /v1',
+      routing: 'Multi-runtime routing',
+      cli: 'Drop-in CLI configs'
+    },
+    docsGuide: 'Open integration guide',
+    installCommand: 'Install',
+    sections: {
+      claude: {
+        badge: 'Claude Code',
+        title: 'Point Claude Code at b022hub',
+        description: 'Keep the native Claude Code workflow and only swap authentication plus base URL. The gateway accepts Anthropic traffic while the local settings.json captures the new runtime target.'
+      },
+      codex: {
+        badge: 'OpenAI Codex',
+        title: 'Route Codex through one responses gateway',
+        description: 'Write the provider base_url, wire_api, and auth files the way Codex expects, while consolidating models, keys, and traffic strategy inside b022hub.'
+      },
+      gemini: {
+        badge: 'Gemini CLI',
+        title: 'Give Gemini CLI one stable compatible endpoint',
+        description: 'Inject the compatible URL and API key through .env and settings.json so Gemini CLI behaves the same on local machines, remote boxes, and shared environments.'
+      }
+    },
+    progress: {
+      badge: 'Runtime Capabilities',
+      title: 'Core capabilities already implemented in this project',
+      description: 'This section lists only features that already exist in the codebase: compatible gateways, account scheduling, sticky sessions, CLI config generation, and admin-side group and access controls.',
+      orbit: {
+        hubEyebrow: 'Unified Runtime',
+        hubDescription: 'Claude, OpenAI, and Gemini all converge into the same domain, routing layer, and scheduling core.',
+        vendors: {
+          claude: {
+            eyebrow: 'Anthropic Messages',
+            title: 'Claude',
+            description: 'Compatible with the Claude Code `/v1/messages` workflow while keeping the native terminal experience intact.'
+          },
+          openai: {
+            eyebrow: 'Responses + Chat',
+            title: 'OpenAI',
+            description: 'The project already serves the `/v1/responses` and `/v1/chat/completions` paths that Codex relies on.'
+          },
+          gemini: {
+            eyebrow: 'Gemini Native',
+            title: 'Gemini',
+            description: 'The native `/v1beta/models/*` entry used by Gemini CLI is already wired into the same auth layer.'
+          }
+        }
+      },
+      completed: 'Completed',
+      building: 'Building',
+      cards: {
+        gateway: {
+          title: 'Unified compatible gateway',
+          description: 'The project already exposes compatible endpoints for `/v1/messages`, `/v1/responses`, `/v1/chat/completions`, and Gemini `/v1beta/models/*`.'
+        },
+        routing: {
+          title: 'Account scheduling and sticky sessions',
+          description: 'Model-aware account selection, wait queues, concurrency control, failover, and sticky-session routing are already part of the runtime path.'
+        },
+        workflow: {
+          title: 'CLI onboarding and admin controls',
+          description: 'The frontend already generates Claude, Codex, and Gemini connection snippets, and the admin side already includes groups, model routing, Claude Code restrictions, and OpenAI Messages dispatch controls.'
+        }
+      }
+    },
+    logo: {
+      activeLayer: 'Active Layer',
+      layers: {
+        claude: 'Claude Route',
+        codex: 'Codex Route',
+        gemini: 'Gemini Route',
+        progress: 'b022hub Runtime'
+      }
+    },
+    showcase: {
+      title: 'Live Orchestration Panel',
+      request: 'Request Entry',
+      routing: 'Smart Routing',
+      policy: 'Usage Policy',
+      response: 'Response',
+      live: 'Live Now'
+    },
     tags: {
       subscriptionToApi: 'Subscription to API',
       stickySession: 'Session Persistence',
@@ -21,6 +115,7 @@ export default {
     // Pain points section
     painPoints: {
       title: 'Sound Familiar?',
+      description: 'If you are jumping between multiple AI subscriptions while worrying about cost and stability, these issues usually arrive as a package deal.',
       items: {
         expensive: {
           title: 'High Subscription Costs',
@@ -45,6 +140,23 @@ export default {
       title: 'We Solve These Problems',
       subtitle: 'Three simple steps to stress-free AI access'
     },
+    solutionSteps: {
+      title: 'Three-Step Setup',
+      items: {
+        connect: {
+          title: 'Connect your upstream subscriptions',
+          desc: 'Bring Claude, GPT, Gemini, and other existing accounts into one control layer.'
+        },
+        issue: {
+          title: 'Issue one unified key',
+          desc: 'Create API keys for yourself or your team with quotas, concurrency, and permissions.'
+        },
+        invoke: {
+          title: 'Call one endpoint',
+          desc: 'Your app integrates once while model switching and failover happen behind the scenes.'
+        }
+      }
+    },
     features: {
       unifiedGateway: 'One-Click Access',
       unifiedGatewayDesc: 'Get a single API key to call all connected AI models. No separate applications needed.',
@@ -52,6 +164,30 @@ export default {
       multiAccountDesc: 'Smart routing across multiple upstream accounts with automatic failover. Say goodbye to errors.',
       balanceQuota: 'Pay What You Use',
       balanceQuotaDesc: 'Usage-based billing with quota limits. Full visibility into team consumption.'
+    },
+    scenarios: {
+      title: 'Built Around How You Work',
+      subtitle: 'Not everyone needs the same AI access pattern, so the homepage now speaks to the most common usage styles directly.',
+      items: {
+        maker: {
+          eyebrow: 'Independent Builders',
+          title: 'Run side projects and automation from one key',
+          desc: 'Best for people who want low-cost model exploration, fast provider switching, and less account overhead.',
+          points: ['Try multiple models without stacking subscriptions', 'Point scripts and workflows to one endpoint', 'Reduce account and subscription maintenance']
+        },
+        team: {
+          eyebrow: 'Small Teams',
+          title: 'Pull budget, permissions, and visibility into one admin view',
+          desc: 'Ideal for collaborative setups where usage limits, key distribution, and unified billing all matter.',
+          points: ['Issue keys centrally', 'Control quotas, concurrency, and usage details', 'Keep shared spending easier to track']
+        },
+        power: {
+          eyebrow: 'AI Power Users',
+          title: 'Turn scattered subscriptions into a stable daily workflow',
+          desc: 'Great for users who rely on Claude, GPT, and Gemini every day and care deeply about resilience.',
+          points: ['Multi-account pools reduce single-account limits', 'Switch models quickly inside the same workflow', 'Fallback paths protect high-frequency usage']
+        }
+      }
     },
     // Comparison section
     comparison: {
@@ -97,7 +233,14 @@ export default {
       claude: 'Claude',
       gemini: 'Gemini',
       antigravity: 'Antigravity',
-      more: 'More'
+      more: 'More',
+      details: {
+        claude: 'Long-form reasoning and premium conversations',
+        gpt: 'General reasoning and workflow automation',
+        gemini: 'Fast multimodal and responsive tasks',
+        antigravity: 'Creative production and experimental capability',
+        more: 'More upstream capabilities are on the way'
+      }
     },
     // CTA section
     cta: {
@@ -106,7 +249,8 @@ export default {
       button: 'Sign Up Free'
     },
     footer: {
-      allRightsReserved: 'All rights reserved.'
+      allRightsReserved: 'All rights reserved.',
+      forkNotice: '{siteName} is a customized secondary development based on the original Sub2API project.'
     }
   },
 
@@ -182,8 +326,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Sub2API Setup',
-    description: 'Configure your Sub2API instance',
+    title: 'b022hub Setup',
+    description: 'Configure your b022hub instance',
     database: {
       title: 'Database Configuration',
       description: 'Connect to your PostgreSQL database',
@@ -287,6 +431,7 @@ export default {
     total: 'Total',
     balance: 'Balance',
     available: 'Available',
+    copy: 'Copy',
     copiedToClipboard: 'Copied to clipboard',
     copied: 'Copied',
     copyFailed: 'Failed to copy',
@@ -1077,7 +1222,7 @@ export default {
         step1: {
           title: 'Create an R2 Bucket',
           line1: 'Log in to the Cloudflare Dashboard (dash.cloudflare.com), select "R2 Object Storage" from the sidebar',
-          line2: 'Click "Create bucket", enter a name (e.g. sub2api-backups), choose a region',
+          line2: 'Click "Create bucket", enter a name (e.g. b022hub-backups), choose a region',
           line3: 'Click create to finish'
         },
         step2: {
@@ -1926,7 +2071,7 @@ export default {
         antigravityOauth: 'Antigravity OAuth',
         antigravityApikey: 'Connect via Base URL + API Key',
         soraApiKey: 'API Key / Upstream',
-        soraApiKeyHint: 'Connect to another Sub2API or compatible API',
+        soraApiKeyHint: 'Connect to another b022hub or compatible API',
         soraBaseUrlRequired: 'Sora API Key account requires a Base URL',
         soraBaseUrlInvalidScheme: 'Base URL must start with http:// or https://',
         upstream: 'Upstream',
@@ -2221,7 +2366,7 @@ export default {
       poolMode: 'Pool Mode',
       poolModeHint: 'Enable when upstream is an account pool; errors won\'t mark local account status',
       poolModeInfo:
-        'When enabled, upstream 429/403/401 errors will auto-retry without marking the account as rate-limited or errored. Suitable for upstream pointing to another sub2api instance.',
+        'When enabled, upstream 429/403/401 errors will auto-retry without marking the account as rate-limited or errored. Suitable for upstream pointing to another b022hub instance.',
       poolModeRetryCount: 'Same-Account Retries',
       poolModeRetryCountHint:
         'Only applies in pool mode. Use 0 to disable in-place retry. Default {default}, maximum {max}.',
@@ -2729,7 +2874,7 @@ export default {
       geminiImageTestMode: 'Mode: Gemini image generation test',
       geminiImagePreview: 'Generated images:',
       geminiImageReceived: 'Received test image #{count}',
-      soraUpstreamBaseUrlHint: 'Upstream Sora service URL (another Sub2API instance or compatible API)',
+      soraUpstreamBaseUrlHint: 'Upstream Sora service URL (another b022hub instance or compatible API)',
       soraTestHint: 'Sora test runs connectivity and capability checks (/backend/me, subscription, Sora2 invite and remaining quota).',
       soraTestTarget: 'Target: Sora account capability',
       soraTestMode: 'Mode: Connectivity + Capability checks',
@@ -4094,7 +4239,7 @@ export default {
         secretKeyConfiguredHint: 'Secret key configured. Leave empty to keep the current value.'      },
       linuxdo: {
         title: 'LinuxDo Connect Login',
-        description: 'Configure LinuxDo Connect OAuth for Sub2API end-user login',
+        description: 'Configure LinuxDo Connect OAuth for b022hub end-user login',
         enable: 'Enable LinuxDo Login',
         enableHint: 'Show LinuxDo login on the login/register pages',
         clientId: 'Client ID',
@@ -4111,6 +4256,30 @@ export default {
           'Must match the redirect URL configured in Connect.Linux.Do (must be an absolute http(s) URL)',
         quickSetCopy: 'Generate & Copy (current site)',
         redirectUrlSetAndCopied: 'Redirect URL generated and copied to clipboard'
+      },
+      linuxdoCredit: {
+        title: 'LINUX DO Credit Payments',
+        description: 'Configure LINUX DO Credit merchant settings for account balance top-up',
+        enable: 'Enable Credit Payments',
+        enableHint: 'Show the LINUX DO Credit payment entry on the purchase page',
+        clientId: 'Merchant ID',
+        clientIdPlaceholder: 'e.g. 10001',
+        clientSecret: 'Merchant Secret',
+        clientSecretPlaceholder: 'Enter the LINUX DO Credit merchant secret',
+        clientSecretHint: 'Used to sign checkout requests and verify async notifications. Keep it secret.',
+        clientSecretConfiguredPlaceholder: 'Configured. Leave empty to keep the current value.',
+        clientSecretConfiguredHint: 'Secret configured. Leave empty to keep the current value.',
+        exchangeRate: 'Credit Exchange Rate',
+        exchangeRateHint:
+          'How much site balance the user receives for 1 unit of paid amount. For example, 1 means 1:1 and 10 means 1 currency unit gives 10 balance.',
+        callbackTitle: 'Callback URL Suggestions',
+        callbackHint:
+          'Configure these two URLs in the LINUX DO Credit merchant dashboard as the return URL and async notify URL.',
+        returnUrl: 'Return URL',
+        returnUrlCopied: 'Return URL copied',
+        notifyUrl: 'Notify URL',
+        notifyUrlCopied: 'Notify URL copied',
+        copy: 'Copy'
       },
       defaults: {
         title: 'Default User Settings',
@@ -4153,10 +4322,10 @@ export default {
         backendModeDescription:
           'Disables user registration, public site, and self-service features. Only admin can log in and manage the platform.',
         siteName: 'Site Name',
-        siteNamePlaceholder: 'Sub2API',
+        siteNamePlaceholder: 'b022hub',
         siteNameHint: 'Displayed in emails and page titles',
         siteSubtitle: 'Site Subtitle',
-        siteSubtitlePlaceholder: 'Subscription to API Conversion Platform',
+        siteSubtitlePlaceholder: 'Unified AI Runtime Hub',
         siteSubtitleHint: 'Displayed on login and register pages',
         apiBaseUrl: 'API Base URL',
         apiBaseUrlPlaceholder: 'https://api.example.com',
@@ -4192,8 +4361,8 @@ export default {
         urlHint: 'Must be an absolute http(s) URL',
         iframeWarning:
           '⚠️ iframe note: Some websites block embedding via X-Frame-Options or CSP (frame-ancestors). If the page is blank, provide an "Open in new tab" alternative.',
-        integrationDoc: 'Payment Integration Docs',
-        integrationDocHint: 'Covers endpoint specs, idempotency semantics, and code samples'
+        integrationDoc: 'Local Purchase Integration Guide',
+        integrationDocHint: 'Covers iframe query parameters, theme sync, and embedding requirements'
       },
       soraClient: {
         title: 'Sora Client',
@@ -4241,7 +4410,7 @@ export default {
         fromEmail: 'From Email',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: 'From Name',
-        fromNamePlaceholder: 'Sub2API',
+        fromNamePlaceholder: 'b022hub',
         useTls: 'Use TLS',
         useTlsHint: 'Enable TLS encryption for SMTP connection'
       },
@@ -4553,9 +4722,10 @@ export default {
 
   // Version Badge
   version: {
-    currentVersion: 'Current Version',
+    currentVersion: 'Current Build',
     latestVersion: 'Latest Version',
     upToDate: "You're running the latest version.",
+    buildTag: 'Build',
     updateAvailable: 'A new version is available!',
     releaseNotes: 'Release Notes',
     noReleaseNotes: 'No release notes',
@@ -4584,7 +4754,39 @@ export default {
     notEnabledDesc: 'The administrator has not enabled the recharge/subscription entry. Please contact admin.',
     notConfiguredTitle: 'Recharge / Subscription URL not configured',
     notConfiguredDesc:
-      'The administrator enabled the entry but has not configured a recharge/subscription URL. Please contact admin.'
+      'The administrator enabled the entry but has not configured a recharge/subscription URL. Please contact admin.',
+    linuxdoCredit: {
+      eyebrow: 'LINUX DO Credit',
+      title: 'Balance Top-up',
+      description:
+        'Create an order and you will be redirected to LINUX DO Credit for payment. After a successful payment, your account balance will be credited automatically.',
+      exchangeRate: 'Current Rate',
+      amountLabel: 'Payment Amount',
+      estimatedCredit: 'Estimated Balance Credit',
+      returnHint: 'After payment you will be redirected back here, and you can also check the order status manually later.',
+      payNow: 'Pay Now',
+      creating: 'Creating order...',
+      createOrderFailed: 'Failed to create order',
+      invalidAmount: 'Enter a valid payment amount',
+      latestOrder: 'Current Order',
+      noOrderYet: 'No order created yet',
+      orderNumber: 'Order No.',
+      orderAmount: 'Payment Amount',
+      orderCredit: 'Balance Credit',
+      checkStatus: 'Check Payment Status',
+      syncing: 'Checking...',
+      syncFailed: 'Failed to sync order status',
+      paymentSuccess: 'Payment succeeded and balance has been credited',
+      redirectingToPay: 'Redirecting to payment page',
+      returnDetected: 'Payment return detected. You can continue checking the order status.',
+      recentOrders: 'Recent Orders',
+      recentOrdersHint: 'Shows the most recent top-up orders for the current account',
+      emptyOrders: 'No top-up orders yet',
+      status: {
+        pending: 'Pending',
+        paid: 'Paid'
+      }
+    }
   },
 
   // Custom Page (iframe embed)
@@ -4664,14 +4866,14 @@ export default {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '👋 Welcome to Sub2API',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Sub2API is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>🎯 Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li>🔗 <b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li>🔑 <b>Key Distribution</b> - Generate independent API Keys for users</li><li>💰 <b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
+        title: '👋 Welcome to b022hub',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">b022hub is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>🎯 Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li>🔗 <b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li>🔑 <b>Key Distribution</b> - Generate independent API Keys for users</li><li>💰 <b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
         nextBtn: 'Start Setup 🚀',
         prevBtn: 'Skip'
       },
       groupManage: {
         title: '📦 Step 1: Group Management',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of Sub2API, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 Each group can contain multiple upstream accounts</li><li>💰 Each group has independent billing multiplier</li><li>👥 Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Group Management" on the left sidebar</p></div>'
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of b022hub, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 Each group can contain multiple upstream accounts</li><li>💰 Each group has independent billing multiplier</li><li>👥 Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Group Management" on the left sidebar</p></div>'
       },
       createGroup: {
         title: '➕ Create New Group',
@@ -4764,8 +4966,8 @@ export default {
     // User tour steps
     user: {
       welcome: {
-        title: '👋 Welcome to Sub2API',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the Sub2API AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
+        title: '👋 Welcome to b022hub',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the b022hub AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
         nextBtn: 'Start 🚀',
         prevBtn: 'Skip'
       },

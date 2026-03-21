@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	httppool "github.com/Wei-Shaw/sub2api/internal/pkg/httpclient"
-	openaipkg "github.com/Wei-Shaw/sub2api/internal/pkg/openai"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
+	httppool "github.com/B022MC/b022hub/internal/pkg/httpclient"
+	openaipkg "github.com/B022MC/b022hub/internal/pkg/openai"
+	"github.com/B022MC/b022hub/internal/pkg/pagination"
+	"github.com/B022MC/b022hub/internal/pkg/timezone"
+	"github.com/B022MC/b022hub/internal/pkg/usagestats"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
 )

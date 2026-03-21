@@ -9,9 +9,14 @@
     <!-- Logo/Brand -->
     <div class="sidebar-header">
       <!-- Custom Logo or Default Logo -->
-      <div class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl shadow-glow">
-        <img v-if="settingsLoaded" :src="siteLogo || '/logo.png'" alt="Logo" class="h-full w-full object-contain" />
-      </div>
+      <router-link
+        to="/home"
+        class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl shadow-glow transition-transform duration-200 hover:scale-[1.03]"
+        :aria-label="t('home.nav.home')"
+        @click="closeMobile"
+      >
+        <img v-if="settingsLoaded" :src="siteLogo || '/b022-logo.svg'" alt="Logo" class="h-full w-full object-contain" />
+      </router-link>
       <transition name="fade">
         <div v-if="!sidebarCollapsed" class="flex flex-col">
           <span class="text-lg font-bold text-gray-900 dark:text-white">
@@ -147,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, ref, watch } from 'vue'
+import { computed, h, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
@@ -173,7 +178,7 @@ const adminSettingsStore = useAdminSettingsStore()
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed)
 const mobileOpen = computed(() => appStore.mobileOpen)
 const isAdmin = computed(() => authStore.isAdmin)
-const isDark = ref(document.documentElement.classList.contains('dark'))
+const isDark = computed(() => appStore.isDark)
 
 // Site settings from appStore (cached, no flicker)
 const siteName = computed(() => appStore.siteName)
@@ -492,7 +497,8 @@ const userNavItems = computed((): NavItem[] => {
     ...(appStore.cachedPublicSettings?.sora_client_enabled
       ? [{ path: '/sora', label: t('nav.sora'), icon: SoraIcon }]
       : []),
-    ...(appStore.cachedPublicSettings?.purchase_subscription_enabled
+    ...(appStore.cachedPublicSettings?.purchase_subscription_enabled ||
+    appStore.cachedPublicSettings?.linuxdo_credit_enabled
       ? [
           {
             path: '/purchase',
@@ -523,7 +529,8 @@ const personalNavItems = computed((): NavItem[] => {
     ...(appStore.cachedPublicSettings?.sora_client_enabled
       ? [{ path: '/sora', label: t('nav.sora'), icon: SoraIcon }]
       : []),
-    ...(appStore.cachedPublicSettings?.purchase_subscription_enabled
+    ...(appStore.cachedPublicSettings?.purchase_subscription_enabled ||
+    appStore.cachedPublicSettings?.linuxdo_credit_enabled
       ? [
           {
             path: '/purchase',
@@ -602,9 +609,7 @@ function toggleSidebar() {
 }
 
 function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+  appStore.toggleTheme()
 }
 
 function closeMobile() {
@@ -633,16 +638,6 @@ function handleMenuItemClick(itemPath: string) {
 
 function isActive(path: string): boolean {
   return route.path === path || route.path.startsWith(path + '/')
-}
-
-// Initialize theme
-const savedTheme = localStorage.getItem('theme')
-if (
-  savedTheme === 'dark' ||
-  (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
-) {
-  isDark.value = true
-  document.documentElement.classList.add('dark')
 }
 
 // Fetch admin settings (for feature-gated nav items like Ops).

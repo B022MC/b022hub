@@ -5,28 +5,29 @@ package runtime
 import (
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/ent/account"
-	"github.com/Wei-Shaw/sub2api/ent/accountgroup"
-	"github.com/Wei-Shaw/sub2api/ent/announcement"
-	"github.com/Wei-Shaw/sub2api/ent/announcementread"
-	"github.com/Wei-Shaw/sub2api/ent/apikey"
-	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
-	"github.com/Wei-Shaw/sub2api/ent/group"
-	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
-	"github.com/Wei-Shaw/sub2api/ent/promocode"
-	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
-	"github.com/Wei-Shaw/sub2api/ent/proxy"
-	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
-	"github.com/Wei-Shaw/sub2api/ent/schema"
-	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
-	"github.com/Wei-Shaw/sub2api/ent/setting"
-	"github.com/Wei-Shaw/sub2api/ent/usagecleanuptask"
-	"github.com/Wei-Shaw/sub2api/ent/usagelog"
-	"github.com/Wei-Shaw/sub2api/ent/user"
-	"github.com/Wei-Shaw/sub2api/ent/userallowedgroup"
-	"github.com/Wei-Shaw/sub2api/ent/userattributedefinition"
-	"github.com/Wei-Shaw/sub2api/ent/userattributevalue"
-	"github.com/Wei-Shaw/sub2api/ent/usersubscription"
+	"github.com/B022MC/b022hub/ent/account"
+	"github.com/B022MC/b022hub/ent/accountgroup"
+	"github.com/B022MC/b022hub/ent/announcement"
+	"github.com/B022MC/b022hub/ent/announcementread"
+	"github.com/B022MC/b022hub/ent/apikey"
+	"github.com/B022MC/b022hub/ent/errorpassthroughrule"
+	"github.com/B022MC/b022hub/ent/group"
+	"github.com/B022MC/b022hub/ent/idempotencyrecord"
+	"github.com/B022MC/b022hub/ent/paymentorder"
+	"github.com/B022MC/b022hub/ent/promocode"
+	"github.com/B022MC/b022hub/ent/promocodeusage"
+	"github.com/B022MC/b022hub/ent/proxy"
+	"github.com/B022MC/b022hub/ent/redeemcode"
+	"github.com/B022MC/b022hub/ent/schema"
+	"github.com/B022MC/b022hub/ent/securitysecret"
+	"github.com/B022MC/b022hub/ent/setting"
+	"github.com/B022MC/b022hub/ent/usagecleanuptask"
+	"github.com/B022MC/b022hub/ent/usagelog"
+	"github.com/B022MC/b022hub/ent/user"
+	"github.com/B022MC/b022hub/ent/userallowedgroup"
+	"github.com/B022MC/b022hub/ent/userattributedefinition"
+	"github.com/B022MC/b022hub/ent/userattributevalue"
+	"github.com/B022MC/b022hub/ent/usersubscription"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -498,6 +499,106 @@ func init() {
 	idempotencyrecordDescErrorReason := idempotencyrecordFields[6].Descriptor()
 	// idempotencyrecord.ErrorReasonValidator is a validator for the "error_reason" field. It is called by the builders before save.
 	idempotencyrecord.ErrorReasonValidator = idempotencyrecordDescErrorReason.Validators[0].(func(string) error)
+	paymentorderFields := schema.PaymentOrder{}.Fields()
+	_ = paymentorderFields
+	// paymentorderDescProvider is the schema descriptor for provider field.
+	paymentorderDescProvider := paymentorderFields[0].Descriptor()
+	// paymentorder.DefaultProvider holds the default value on creation for the provider field.
+	paymentorder.DefaultProvider = paymentorderDescProvider.Default.(string)
+	// paymentorder.ProviderValidator is a validator for the "provider" field. It is called by the builders before save.
+	paymentorder.ProviderValidator = func() func(string) error {
+		validators := paymentorderDescProvider.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(provider string) error {
+			for _, fn := range fns {
+				if err := fn(provider); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// paymentorderDescOutTradeNo is the schema descriptor for out_trade_no field.
+	paymentorderDescOutTradeNo := paymentorderFields[1].Descriptor()
+	// paymentorder.OutTradeNoValidator is a validator for the "out_trade_no" field. It is called by the builders before save.
+	paymentorder.OutTradeNoValidator = func() func(string) error {
+		validators := paymentorderDescOutTradeNo.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(out_trade_no string) error {
+			for _, fn := range fns {
+				if err := fn(out_trade_no); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// paymentorderDescProviderTradeNo is the schema descriptor for provider_trade_no field.
+	paymentorderDescProviderTradeNo := paymentorderFields[2].Descriptor()
+	// paymentorder.ProviderTradeNoValidator is a validator for the "provider_trade_no" field. It is called by the builders before save.
+	paymentorder.ProviderTradeNoValidator = paymentorderDescProviderTradeNo.Validators[0].(func(string) error)
+	// paymentorderDescTitle is the schema descriptor for title field.
+	paymentorderDescTitle := paymentorderFields[4].Descriptor()
+	// paymentorder.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	paymentorder.TitleValidator = func() func(string) error {
+		validators := paymentorderDescTitle.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(title string) error {
+			for _, fn := range fns {
+				if err := fn(title); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// paymentorderDescAmount is the schema descriptor for amount field.
+	paymentorderDescAmount := paymentorderFields[5].Descriptor()
+	// paymentorder.DefaultAmount holds the default value on creation for the amount field.
+	paymentorder.DefaultAmount = paymentorderDescAmount.Default.(float64)
+	// paymentorderDescCreditedAmount is the schema descriptor for credited_amount field.
+	paymentorderDescCreditedAmount := paymentorderFields[6].Descriptor()
+	// paymentorder.DefaultCreditedAmount holds the default value on creation for the credited_amount field.
+	paymentorder.DefaultCreditedAmount = paymentorderDescCreditedAmount.Default.(float64)
+	// paymentorderDescStatus is the schema descriptor for status field.
+	paymentorderDescStatus := paymentorderFields[7].Descriptor()
+	// paymentorder.DefaultStatus holds the default value on creation for the status field.
+	paymentorder.DefaultStatus = paymentorderDescStatus.Default.(string)
+	// paymentorder.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	paymentorder.StatusValidator = func() func(string) error {
+		validators := paymentorderDescStatus.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(status string) error {
+			for _, fn := range fns {
+				if err := fn(status); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// paymentorderDescCreatedAt is the schema descriptor for created_at field.
+	paymentorderDescCreatedAt := paymentorderFields[10].Descriptor()
+	// paymentorder.DefaultCreatedAt holds the default value on creation for the created_at field.
+	paymentorder.DefaultCreatedAt = paymentorderDescCreatedAt.Default.(func() time.Time)
+	// paymentorderDescUpdatedAt is the schema descriptor for updated_at field.
+	paymentorderDescUpdatedAt := paymentorderFields[11].Descriptor()
+	// paymentorder.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	paymentorder.DefaultUpdatedAt = paymentorderDescUpdatedAt.Default.(func() time.Time)
+	// paymentorder.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	paymentorder.UpdateDefaultUpdatedAt = paymentorderDescUpdatedAt.UpdateDefault.(func() time.Time)
 	promocodeFields := schema.PromoCode{}.Fields()
 	_ = promocodeFields
 	// promocodeDescCode is the schema descriptor for code field.

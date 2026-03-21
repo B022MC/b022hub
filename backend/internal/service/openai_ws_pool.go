@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/B022MC/b022hub/internal/config"
 	"golang.org/x/sync/errgroup"
 )
 

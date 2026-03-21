@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
-	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/pkg/ctxkey"
+	"github.com/B022MC/b022hub/internal/pkg/logger"
+	"github.com/B022MC/b022hub/internal/pkg/response"
+	middleware2 "github.com/B022MC/b022hub/internal/server/middleware"
+	"github.com/B022MC/b022hub/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

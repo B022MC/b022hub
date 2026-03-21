@@ -13,12 +13,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/proxyurl"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/proxyutil"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
-	"github.com/Wei-Shaw/sub2api/internal/service"
-	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
+	"github.com/B022MC/b022hub/internal/config"
+	"github.com/B022MC/b022hub/internal/pkg/proxyurl"
+	"github.com/B022MC/b022hub/internal/pkg/proxyutil"
+	"github.com/B022MC/b022hub/internal/pkg/tlsfingerprint"
+	"github.com/B022MC/b022hub/internal/service"
+	"github.com/B022MC/b022hub/internal/util/urlvalidator"
 )
 
 // 默认配置常量

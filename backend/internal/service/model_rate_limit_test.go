@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
+	"github.com/B022MC/b022hub/internal/pkg/ctxkey"
 )
 
 func TestIsModelRateLimited(t *testing.T) {

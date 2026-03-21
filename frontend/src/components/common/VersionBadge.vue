@@ -12,7 +12,7 @@
         ]"
         :title="hasUpdate ? t('version.updateAvailable') : t('version.upToDate')"
       >
-        <span v-if="currentVersion" class="font-medium">v{{ currentVersion }}</span>
+        <span v-if="currentVersion" class="font-medium">{{ compactCurrentVersion }}</span>
         <span
           v-else
           class="h-3 w-12 animate-pulse rounded bg-gray-200 font-medium dark:bg-dark-600"
@@ -79,11 +79,11 @@
             <template v-else>
               <!-- Version display - centered and prominent -->
               <div class="mb-4 text-center">
-                <div class="inline-flex items-center gap-2">
+                <div class="flex flex-col items-center gap-1.5">
                   <span
                     v-if="currentVersion"
                     class="text-2xl font-bold text-gray-900 dark:text-white"
-                    >v{{ currentVersion }}</span
+                    >{{ headlineCurrentVersion }}</span
                   >
                   <span v-else class="text-2xl font-bold text-gray-400 dark:text-dark-500">--</span>
                   <!-- Show check mark when up to date -->
@@ -375,7 +375,7 @@
 
     <!-- Non-admin: Simple static version text -->
     <span v-else-if="version" class="text-xs text-gray-500 dark:text-dark-400">
-      v{{ version }}
+      {{ compactPropVersion }}
     </span>
   </div>
 </template>
@@ -397,6 +397,7 @@ const authStore = useAuthStore()
 const appStore = useAppStore()
 
 const isAdmin = computed(() => authStore.isAdmin)
+const siteName = computed(() => appStore.siteName || 'b022hub')
 
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
@@ -408,6 +409,27 @@ const latestVersion = computed(() => appStore.latestVersion)
 const hasUpdate = computed(() => appStore.hasUpdate)
 const releaseInfo = computed(() => appStore.releaseInfo)
 const buildType = computed(() => appStore.buildType)
+const compactCurrentVersion = computed(() => {
+  if (!currentVersion.value) {
+    return ''
+  }
+
+  return `${t('version.buildTag')} ${currentVersion.value}`
+})
+const headlineCurrentVersion = computed(() => {
+  if (!currentVersion.value) {
+    return ''
+  }
+
+  return `${siteName.value} ${t('version.buildTag')} ${currentVersion.value}`
+})
+const compactPropVersion = computed(() => {
+  if (!props.version) {
+    return ''
+  }
+
+  return `${t('version.buildTag')} ${props.version}`
+})
 
 // Update process states (local to this component)
 const updating = ref(false)

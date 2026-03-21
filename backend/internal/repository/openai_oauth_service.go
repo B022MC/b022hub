@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	infraerrors "github.com/B022MC/b022hub/internal/pkg/errors"
+	"github.com/B022MC/b022hub/internal/pkg/openai"
+	"github.com/B022MC/b022hub/internal/service"
 	"github.com/imroc/req/v3"
 )
 

@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"strings"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/ent/apikey"
-	"github.com/Wei-Shaw/sub2api/ent/group"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	dbent "github.com/B022MC/b022hub/ent"
+	"github.com/B022MC/b022hub/ent/apikey"
+	"github.com/B022MC/b022hub/ent/group"
+	"github.com/B022MC/b022hub/internal/pkg/logger"
+	"github.com/B022MC/b022hub/internal/pkg/pagination"
+	"github.com/B022MC/b022hub/internal/service"
 	"github.com/lib/pq"
 )
 

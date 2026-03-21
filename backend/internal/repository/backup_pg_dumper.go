@@ -6,8 +6,8 @@ import (
 	"io"
 	"os/exec"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/config"
+	"github.com/B022MC/b022hub/internal/service"
 )
 
 // PgDumper implements service.DBDumper using pg_dump/psql

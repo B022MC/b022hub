@@ -1,6 +1,6 @@
 [Unit]
-Description=Sub2API - AI API Gateway Platform
-Documentation=https://github.com/Wei-Shaw/sub2api
+Description=b022hub - AI API Gateway Platform
+Documentation=https://github.com/B022MC/b022hub
 After=network.target postgresql.service redis.service
 Wants=postgresql.service redis.service
 

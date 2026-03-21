@@ -1,13 +1,19 @@
 <template>
-  <div class="relative flex min-h-screen flex-col bg-gray-50 dark:bg-dark-950">
+  <div class="app-brand-shell key-usage-shell relative flex min-h-screen flex-col overflow-hidden">
+    <div class="app-brand-shell__backdrop"></div>
+    <div class="app-brand-shell__glow app-brand-shell__glow--warm"></div>
+    <div class="app-brand-shell__glow app-brand-shell__glow--cool"></div>
+    <div class="app-brand-shell__grid"></div>
+    <div class="app-brand-shell__noise"></div>
+
     <!-- Header (same pattern as HomeView) -->
-    <header class="relative z-20 px-6 py-4">
+    <header class="key-usage-shell__header relative z-20 px-6 py-4">
       <nav class="mx-auto flex max-w-6xl items-center justify-between">
         <router-link to="/home" class="flex items-center gap-3">
-          <div class="h-10 w-10 overflow-hidden rounded-xl shadow-md">
-            <img :src="siteLogo || '/logo.png'" alt="Logo" class="h-full w-full object-contain" />
+          <div class="key-usage-shell__logo flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl">
+            <img :src="siteLogo || '/b022-logo.svg'" alt="Logo" class="h-full w-full object-contain" />
           </div>
-          <span class="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">{{ siteName }}</span>
+          <span class="key-usage-shell__brand text-lg font-semibold tracking-tight">{{ siteName }}</span>
         </router-link>
         <div class="flex items-center gap-3">
           <LocaleSwitcher />
@@ -16,14 +22,14 @@
             :href="docUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
+            class="key-usage-shell__icon-button rounded-lg p-2 transition-colors"
             :title="t('home.viewDocs')"
           >
             <Icon name="book" size="md" />
           </a>
           <button
             @click="toggleTheme"
-            class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
+            class="key-usage-shell__icon-button rounded-lg p-2 transition-colors"
             :title="isDark ? t('home.switchToLight') : t('home.switchToDark')"
           >
             <Icon v-if="isDark" name="sun" size="md" />
@@ -34,7 +40,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 w-full max-w-5xl mx-auto px-6 py-12">
+    <main class="relative z-10 mx-auto flex-1 w-full max-w-5xl px-6 py-12">
       <!-- Hero -->
       <div class="text-center mb-12">
         <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-3 text-gray-900 dark:text-white">
@@ -335,25 +341,18 @@
     </main>
 
     <!-- Footer (same pattern as HomeView) -->
-    <footer class="relative z-10 border-t border-gray-200/50 px-6 py-8 dark:border-dark-800/50">
+    <footer class="key-usage-shell__footer relative z-10 px-6 py-8">
       <div class="mx-auto flex max-w-6xl flex-col items-center justify-center gap-4 text-center sm:flex-row sm:text-left">
-        <p class="text-sm text-gray-500 dark:text-dark-400">
+        <p class="key-usage-shell__footer-text text-sm">
           &copy; {{ currentYear }} {{ siteName }}. {{ t('home.footer.allRightsReserved') }}
         </p>
-        <div class="flex items-center gap-4">
+        <div v-if="docUrl" class="flex items-center gap-4">
           <a
-            v-if="docUrl"
             :href="docUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
+            class="key-usage-shell__footer-link text-sm transition-colors"
           >{{ t('home.docs') }}</a>
-          <a
-            :href="githubUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
-          >GitHub</a>
         </div>
       </div>
     </footer>
@@ -361,7 +360,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
@@ -372,19 +371,16 @@ const appStore = useAppStore()
 
 // ==================== Site Settings (same as HomeView) ====================
 
-const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'Sub2API')
+const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'b022hub')
 const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
-const docUrl = computed(() => appStore.cachedPublicSettings?.doc_url || appStore.docUrl || '')
-const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
+const docUrl = computed(() => appStore.docUrl || '')
 
 // ==================== Theme (same as HomeView) ====================
 
-const isDark = ref(document.documentElement.classList.contains('dark'))
+const isDark = computed(() => appStore.isDark)
 
 function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+  appStore.toggleTheme()
 }
 
 const currentYear = computed(() => new Date().getFullYear())
@@ -449,7 +445,7 @@ function getDateParams(): string {
 
 const CIRCUMFERENCE = 2 * Math.PI * 68
 const RING_GRADIENTS = [
-  { from: '#14b8a6', to: '#5eead4' },
+  { from: '#cc785c', to: '#f3ae8a' },
   { from: '#6366F1', to: '#A5B4FC' },
   { from: '#10B981', to: '#6EE7B7' },
   { from: '#F59E0B', to: '#FCD34D' },
@@ -458,7 +454,7 @@ const RING_GRADIENTS = [
 const ringAnimated = ref(false)
 const displayPcts = ref<number[]>([])
 
-const ringTrackColor = computed(() => isDark.value ? '#222222' : '#F0F0EE')
+const ringTrackColor = computed(() => (isDark.value ? '#222222' : '#F0F0EE'))
 
 interface RingItem {
   title: string
@@ -802,14 +798,6 @@ async function queryKey() {
 
 // ==================== Lifecycle ====================
 
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme')
-  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
-  }
-}
-
 function formatResetTime(resetAt: string | null | undefined): string {
   if (!resetAt) return ''
   const diff = new Date(resetAt).getTime() - now.value.getTime()
@@ -823,7 +811,6 @@ function formatResetTime(resetAt: string | null | undefined): string {
 }
 
 onMounted(() => {
-  initTheme()
   if (!appStore.publicSettingsLoaded) {
     appStore.fetchPublicSettings()
   }
@@ -841,8 +828,8 @@ onUnmounted(() => {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .input-ring:focus {
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
-  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(204, 120, 92, 0.22);
+  border-color: #cc785c;
   outline: none;
 }
 
@@ -895,5 +882,87 @@ onUnmounted(() => {
 .tabular-nums {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+}
+
+.key-usage-shell__header {
+  border-bottom: 1px solid rgba(125, 94, 71, 0.12);
+  background: rgba(251, 245, 238, 0.72);
+  backdrop-filter: blur(18px);
+}
+
+:global(.dark) .key-usage-shell__header {
+  border-bottom-color: rgba(227, 224, 211, 0.08);
+  background: rgba(20, 18, 16, 0.72);
+}
+
+.key-usage-shell__logo {
+  border: 1px solid rgba(125, 94, 71, 0.12);
+  background: rgba(255, 251, 245, 0.84);
+  box-shadow: 0 12px 32px rgba(89, 62, 41, 0.12);
+}
+
+:global(.dark) .key-usage-shell__logo {
+  border-color: rgba(227, 224, 211, 0.1);
+  background: rgba(18, 16, 14, 0.84);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
+}
+
+.key-usage-shell__brand {
+  color: #2b2118;
+}
+
+:global(.dark) .key-usage-shell__brand {
+  color: #f8f3e7;
+}
+
+.key-usage-shell__icon-button {
+  border: 1px solid rgba(125, 94, 71, 0.12);
+  background: rgba(255, 251, 245, 0.76);
+  color: #6e5b4c;
+  backdrop-filter: blur(14px);
+}
+
+.key-usage-shell__icon-button:hover {
+  color: #2b2118;
+  border-color: rgba(178, 121, 92, 0.24);
+  background: rgba(255, 247, 237, 0.92);
+}
+
+:global(.dark) .key-usage-shell__icon-button {
+  border-color: rgba(227, 224, 211, 0.1);
+  background: rgba(20, 18, 16, 0.76);
+  color: #c9c3b4;
+}
+
+:global(.dark) .key-usage-shell__icon-button:hover {
+  color: #f8f3e7;
+  border-color: rgba(212, 162, 127, 0.2);
+  background: rgba(29, 25, 23, 0.94);
+}
+
+.key-usage-shell__footer {
+  border-top: 1px solid rgba(125, 94, 71, 0.1);
+}
+
+:global(.dark) .key-usage-shell__footer {
+  border-top-color: rgba(227, 224, 211, 0.08);
+}
+
+.key-usage-shell__footer-text,
+.key-usage-shell__footer-link {
+  color: #6e5b4c;
+}
+
+.key-usage-shell__footer-link:hover {
+  color: #2b2118;
+}
+
+:global(.dark) .key-usage-shell__footer-text,
+:global(.dark) .key-usage-shell__footer-link {
+  color: #9d998f;
+}
+
+:global(.dark) .key-usage-shell__footer-link:hover {
+  color: #f8f3e7;
 }
 </style>

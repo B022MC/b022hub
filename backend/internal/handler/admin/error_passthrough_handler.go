@@ -3,9 +3,9 @@ package admin
 import (
 	"strconv"
 
-	"github.com/Wei-Shaw/sub2api/internal/model"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/model"
+	"github.com/B022MC/b022hub/internal/pkg/response"
+	"github.com/B022MC/b022hub/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

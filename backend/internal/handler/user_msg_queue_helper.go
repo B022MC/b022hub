@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

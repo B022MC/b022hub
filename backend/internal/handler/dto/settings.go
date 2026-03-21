@@ -39,10 +39,14 @@ type SystemSettings struct {
 	TurnstileSiteKey             string `json:"turnstile_site_key"`
 	TurnstileSecretKeyConfigured bool   `json:"turnstile_secret_key_configured"`
 
-	LinuxDoConnectEnabled                bool   `json:"linuxdo_connect_enabled"`
-	LinuxDoConnectClientID               string `json:"linuxdo_connect_client_id"`
-	LinuxDoConnectClientSecretConfigured bool   `json:"linuxdo_connect_client_secret_configured"`
-	LinuxDoConnectRedirectURL            string `json:"linuxdo_connect_redirect_url"`
+	LinuxDoConnectEnabled                bool    `json:"linuxdo_connect_enabled"`
+	LinuxDoConnectClientID               string  `json:"linuxdo_connect_client_id"`
+	LinuxDoConnectClientSecretConfigured bool    `json:"linuxdo_connect_client_secret_configured"`
+	LinuxDoConnectRedirectURL            string  `json:"linuxdo_connect_redirect_url"`
+	LinuxDoCreditEnabled                 bool    `json:"linuxdo_credit_enabled"`
+	LinuxDoCreditClientID                string  `json:"linuxdo_credit_client_id"`
+	LinuxDoCreditClientSecretConfigured  bool    `json:"linuxdo_credit_client_secret_configured"`
+	LinuxDoCreditExchangeRate            float64 `json:"linuxdo_credit_exchange_rate"`
 
 	SiteName                    string           `json:"site_name"`
 	SiteLogo                    string           `json:"site_logo"`
@@ -115,6 +119,8 @@ type PublicSettings struct {
 	PurchaseSubscriptionURL          string           `json:"purchase_subscription_url"`
 	CustomMenuItems                  []CustomMenuItem `json:"custom_menu_items"`
 	LinuxDoOAuthEnabled              bool             `json:"linuxdo_oauth_enabled"`
+	LinuxDoCreditEnabled             bool             `json:"linuxdo_credit_enabled"`
+	LinuxDoCreditExchangeRate        float64          `json:"linuxdo_credit_exchange_rate"`
 	SoraClientEnabled                bool             `json:"sora_client_enabled"`
 	BackendModeEnabled               bool             `json:"backend_mode_enabled"`
 	Version                          string           `json:"version"`

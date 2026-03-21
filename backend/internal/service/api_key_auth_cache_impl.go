@@ -9,7 +9,7 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/B022MC/b022hub/internal/config"
 	"github.com/dgraph-io/ristretto"
 )
 

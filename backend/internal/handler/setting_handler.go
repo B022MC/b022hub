@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/handler/dto"
+	"github.com/B022MC/b022hub/internal/pkg/response"
+	"github.com/B022MC/b022hub/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -53,6 +53,8 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 		PurchaseSubscriptionURL:          settings.PurchaseSubscriptionURL,
 		CustomMenuItems:                  dto.ParseUserVisibleMenuItems(settings.CustomMenuItems),
 		LinuxDoOAuthEnabled:              settings.LinuxDoOAuthEnabled,
+		LinuxDoCreditEnabled:             settings.LinuxDoCreditEnabled,
+		LinuxDoCreditExchangeRate:        settings.LinuxDoCreditExchangeRate,
 		SoraClientEnabled:                settings.SoraClientEnabled,
 		BackendModeEnabled:               settings.BackendModeEnabled,
 		Version:                          h.version,

@@ -85,6 +85,15 @@ temp/
 .cache/
 .dev/
 .serena/
+/b022-*.png
+/frontend-home*.png
+/home-footer-*.png
+/jietu-every-second-contact-sheet.png
+/local-home-*.png
+/login-logo-home-verify.png
+/luckhub-*.png
+/ops-dark-*.png
+/theme-*-check.png
 
 # ===================
 # 构建产物
@@ -132,4 +141,3 @@ docs/*
 frontend/coverage/
 aicodex
 output/
-

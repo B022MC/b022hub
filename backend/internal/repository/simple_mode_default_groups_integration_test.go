@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/ent/group"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/ent/group"
+	"github.com/B022MC/b022hub/internal/service"
 	"github.com/stretchr/testify/require"
 )
 

@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/Wei-Shaw/sub2api/ent/predicate"
-	"github.com/Wei-Shaw/sub2api/ent/usagelog"
+	"github.com/B022MC/b022hub/ent/predicate"
+	"github.com/B022MC/b022hub/ent/usagelog"
 )
 
 // UsageLogDelete is the builder for deleting a UsageLog entity.

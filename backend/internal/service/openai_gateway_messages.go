@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/apicompat"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
-	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
+	"github.com/B022MC/b022hub/internal/pkg/apicompat"
+	"github.com/B022MC/b022hub/internal/pkg/claude"
+	"github.com/B022MC/b022hub/internal/pkg/logger"
+	"github.com/B022MC/b022hub/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

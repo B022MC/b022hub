@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/Wei-Shaw/sub2api/internal/handler/admin"
+	"github.com/B022MC/b022hub/internal/handler/admin"
 )
 
 // AdminHandlers contains all admin-related HTTP handlers
@@ -38,6 +38,7 @@ type Handlers struct {
 	APIKey        *APIKeyHandler
 	Usage         *UsageHandler
 	Redeem        *RedeemHandler
+	LinuxDoCredit *LinuxDoCreditHandler
 	Subscription  *SubscriptionHandler
 	Announcement  *AnnouncementHandler
 	Admin         *AdminHandlers

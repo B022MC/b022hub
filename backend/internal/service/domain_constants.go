@@ -1,6 +1,6 @@
 package service
 
-import "github.com/Wei-Shaw/sub2api/internal/domain"
+import "github.com/B022MC/b022hub/internal/domain"
 
 // Status constants
 const (
@@ -105,6 +105,12 @@ const (
 	SettingKeyLinuxDoConnectClientID     = "linuxdo_connect_client_id"
 	SettingKeyLinuxDoConnectClientSecret = "linuxdo_connect_client_secret"
 	SettingKeyLinuxDoConnectRedirectURL  = "linuxdo_connect_redirect_url"
+
+	// LinuxDo Credit 支付设置
+	SettingKeyLinuxDoCreditEnabled      = "linuxdo_credit_enabled"
+	SettingKeyLinuxDoCreditClientID     = "linuxdo_credit_client_id"
+	SettingKeyLinuxDoCreditClientSecret = "linuxdo_credit_client_secret"
+	SettingKeyLinuxDoCreditExchangeRate = "linuxdo_credit_exchange_rate"
 
 	// OEM设置
 	SettingKeySoraClientEnabled           = "sora_client_enabled"           // 是否启用 Sora 客户端（管理员手动控制）

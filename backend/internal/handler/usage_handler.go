@@ -5,13 +5,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
-	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/handler/dto"
+	"github.com/B022MC/b022hub/internal/pkg/pagination"
+	"github.com/B022MC/b022hub/internal/pkg/response"
+	"github.com/B022MC/b022hub/internal/pkg/timezone"
+	"github.com/B022MC/b022hub/internal/pkg/usagestats"
+	middleware2 "github.com/B022MC/b022hub/internal/server/middleware"
+	"github.com/B022MC/b022hub/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

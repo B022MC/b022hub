@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/pkg/timezone"
+	"github.com/B022MC/b022hub/internal/service"
 	"github.com/lib/pq"
 )
 

@@ -31,6 +31,12 @@ type SystemSettings struct {
 	LinuxDoConnectClientSecretConfigured bool
 	LinuxDoConnectRedirectURL            string
 
+	LinuxDoCreditEnabled                bool
+	LinuxDoCreditClientID               string
+	LinuxDoCreditClientSecret           string
+	LinuxDoCreditClientSecretConfigured bool
+	LinuxDoCreditExchangeRate           float64
+
 	SiteName                    string
 	SiteLogo                    string
 	SiteSubtitle                string
@@ -105,9 +111,11 @@ type PublicSettings struct {
 	SoraClientEnabled           bool
 	CustomMenuItems             string // JSON array of custom menu items
 
-	LinuxDoOAuthEnabled bool
-	BackendModeEnabled  bool
-	Version             string
+	LinuxDoOAuthEnabled       bool
+	LinuxDoCreditEnabled      bool
+	LinuxDoCreditExchangeRate float64
+	BackendModeEnabled        bool
+	Version                   string
 }
 
 // SoraS3Settings Sora S3 存储配置

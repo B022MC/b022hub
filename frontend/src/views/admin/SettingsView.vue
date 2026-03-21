@@ -956,6 +956,134 @@
             </div>
           </div>
         </div>
+
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.settings.linuxdoCredit.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.linuxdoCredit.description') }}
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="font-medium text-gray-900 dark:text-white">{{
+                  t('admin.settings.linuxdoCredit.enable')
+                }}</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.linuxdoCredit.enableHint') }}
+                </p>
+              </div>
+              <Toggle v-model="form.linuxdo_credit_enabled" />
+            </div>
+
+            <div
+              v-if="form.linuxdo_credit_enabled"
+              class="border-t border-gray-100 pt-4 dark:border-dark-700"
+            >
+              <div class="grid grid-cols-1 gap-6">
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('admin.settings.linuxdoCredit.clientId') }}
+                  </label>
+                  <input
+                    v-model="form.linuxdo_credit_client_id"
+                    type="text"
+                    class="input font-mono text-sm"
+                    :placeholder="t('admin.settings.linuxdoCredit.clientIdPlaceholder')"
+                  />
+                </div>
+
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('admin.settings.linuxdoCredit.clientSecret') }}
+                  </label>
+                  <input
+                    v-model="form.linuxdo_credit_client_secret"
+                    type="password"
+                    class="input font-mono text-sm"
+                    :placeholder="
+                      form.linuxdo_credit_client_secret_configured
+                        ? t('admin.settings.linuxdoCredit.clientSecretConfiguredPlaceholder')
+                        : t('admin.settings.linuxdoCredit.clientSecretPlaceholder')
+                    "
+                  />
+                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{
+                      form.linuxdo_credit_client_secret_configured
+                        ? t('admin.settings.linuxdoCredit.clientSecretConfiguredHint')
+                        : t('admin.settings.linuxdoCredit.clientSecretHint')
+                    }}
+                  </p>
+                </div>
+
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('admin.settings.linuxdoCredit.exchangeRate') }}
+                  </label>
+                  <input
+                    v-model.number="form.linuxdo_credit_exchange_rate"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    class="input font-mono text-sm"
+                  />
+                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t('admin.settings.linuxdoCredit.exchangeRateHint') }}
+                  </p>
+                </div>
+
+                <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-800">
+                  <p class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ t('admin.settings.linuxdoCredit.callbackTitle') }}
+                  </p>
+                  <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t('admin.settings.linuxdoCredit.callbackHint') }}
+                  </p>
+                  <div class="mt-3 space-y-3">
+                    <div>
+                      <div class="mb-1 flex items-center justify-between gap-3">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                          {{ t('admin.settings.linuxdoCredit.returnUrl') }}
+                        </span>
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-xs"
+                          @click="copyLinuxdoCreditReturnUrl"
+                        >
+                          {{ t('admin.settings.linuxdoCredit.copy') }}
+                        </button>
+                      </div>
+                      <code class="block break-all rounded bg-white px-3 py-2 text-xs dark:bg-dark-900">
+                        {{ linuxdoCreditReturnUrlSuggestion }}
+                      </code>
+                    </div>
+
+                    <div>
+                      <div class="mb-1 flex items-center justify-between gap-3">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                          {{ t('admin.settings.linuxdoCredit.notifyUrl') }}
+                        </span>
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-xs"
+                          @click="copyLinuxdoCreditNotifyUrl"
+                        >
+                          {{ t('admin.settings.linuxdoCredit.copy') }}
+                        </button>
+                      </div>
+                      <code class="block break-all rounded bg-white px-3 py-2 text-xs dark:bg-dark-900">
+                        {{ linuxdoCreditNotifyUrlSuggestion }}
+                      </code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         </div><!-- /Tab: Security — Registration, Turnstile, LinuxDo -->
 
         <!-- Tab: Users -->
@@ -1381,11 +1509,10 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <a
-                href="https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/docs/ADMIN_PAYMENT_INTEGRATION_API.md"
+                href="/docs/ADMIN_PAYMENT_INTEGRATION_API.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="text-blue-600 hover:underline dark:text-blue-400"
-                download="ADMIN_PAYMENT_INTEGRATION_API.md"
               >
                 {{ t('admin.settings.purchase.integrationDoc') }}
               </a>
@@ -1918,6 +2045,7 @@ type SettingsForm = SystemSettings & {
   smtp_password: string
   turnstile_secret_key: string
   linuxdo_connect_client_secret: string
+  linuxdo_credit_client_secret: string
 }
 
 const form = reactive<SettingsForm>({
@@ -1932,9 +2060,9 @@ const form = reactive<SettingsForm>({
   default_balance: 0,
   default_concurrency: 1,
   default_subscriptions: [],
-  site_name: 'Sub2API',
+  site_name: 'b022hub',
   site_logo: '',
-  site_subtitle: 'Subscription to API Conversion Platform',
+  site_subtitle: '',
   api_base_url: '',
   contact_info: '',
   doc_url: '',
@@ -1965,6 +2093,11 @@ const form = reactive<SettingsForm>({
   linuxdo_connect_client_secret: '',
   linuxdo_connect_client_secret_configured: false,
   linuxdo_connect_redirect_url: '',
+  linuxdo_credit_enabled: false,
+  linuxdo_credit_client_id: '',
+  linuxdo_credit_client_secret: '',
+  linuxdo_credit_client_secret_configured: false,
+  linuxdo_credit_exchange_rate: 1,
   // Model fallback
   enable_model_fallback: false,
   fallback_model_anthropic: 'claude-3-5-sonnet-20241022',
@@ -2081,6 +2214,36 @@ async function setAndCopyLinuxdoRedirectUrl() {
   await copyToClipboard(url, t('admin.settings.linuxdo.redirectUrlSetAndCopied'))
 }
 
+const linuxdoCreditReturnUrlSuggestion = computed(() => {
+  if (typeof window === 'undefined') return ''
+  const origin =
+    window.location.origin || `${window.location.protocol}//${window.location.host}`
+  return `${origin}/purchase`
+})
+
+const linuxdoCreditNotifyUrlSuggestion = computed(() => {
+  if (typeof window === 'undefined') return ''
+  const origin =
+    window.location.origin || `${window.location.protocol}//${window.location.host}`
+  return `${origin}/api/v1/auth/payments/linuxdo/notify`
+})
+
+async function copyLinuxdoCreditReturnUrl() {
+  if (!linuxdoCreditReturnUrlSuggestion.value) return
+  await copyToClipboard(
+    linuxdoCreditReturnUrlSuggestion.value,
+    t('admin.settings.linuxdoCredit.returnUrlCopied')
+  )
+}
+
+async function copyLinuxdoCreditNotifyUrl() {
+  if (!linuxdoCreditNotifyUrlSuggestion.value) return
+  await copyToClipboard(
+    linuxdoCreditNotifyUrlSuggestion.value,
+    t('admin.settings.linuxdoCredit.notifyUrlCopied')
+  )
+}
+
 // Custom menu item management
 function addMenuItem() {
   form.custom_menu_items.push({
@@ -2135,6 +2298,7 @@ async function loadSettings() {
     form.smtp_password = ''
     form.turnstile_secret_key = ''
     form.linuxdo_connect_client_secret = ''
+    form.linuxdo_credit_client_secret = ''
   } catch (error: any) {
     appStore.showError(
       t('admin.settings.failedToLoad') + ': ' + (error.message || t('common.unknownError'))
@@ -2239,6 +2403,10 @@ async function saveSettings() {
       linuxdo_connect_client_id: form.linuxdo_connect_client_id,
       linuxdo_connect_client_secret: form.linuxdo_connect_client_secret || undefined,
       linuxdo_connect_redirect_url: form.linuxdo_connect_redirect_url,
+      linuxdo_credit_enabled: form.linuxdo_credit_enabled,
+      linuxdo_credit_client_id: form.linuxdo_credit_client_id,
+      linuxdo_credit_client_secret: form.linuxdo_credit_client_secret || undefined,
+      linuxdo_credit_exchange_rate: form.linuxdo_credit_exchange_rate,
       enable_model_fallback: form.enable_model_fallback,
       fallback_model_anthropic: form.fallback_model_anthropic,
       fallback_model_openai: form.fallback_model_openai,
@@ -2259,6 +2427,7 @@ async function saveSettings() {
     form.smtp_password = ''
     form.turnstile_secret_key = ''
     form.linuxdo_connect_client_secret = ''
+    form.linuxdo_credit_client_secret = ''
     // Refresh cached settings so sidebar/header update immediately
     await appStore.fetchPublicSettings(true)
     await adminSettingsStore.fetch(true)
@@ -2614,12 +2783,12 @@ onMounted(() => {
 
 .settings-tab-active {
   @apply text-primary-600 dark:text-primary-400;
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.08), rgba(20, 184, 166, 0.03));
-  box-shadow: 0 1px 2px rgba(20, 184, 166, 0.1);
+  background: linear-gradient(135deg, rgba(204, 120, 92, 0.12), rgba(204, 120, 92, 0.04));
+  box-shadow: 0 1px 2px rgba(204, 120, 92, 0.14);
 }
 
 :root.dark .settings-tab-active {
-  background: linear-gradient(135deg, rgba(45, 212, 191, 0.12), rgba(45, 212, 191, 0.05));
+  background: linear-gradient(135deg, rgba(204, 120, 92, 0.2), rgba(204, 120, 92, 0.08));
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
 }
 

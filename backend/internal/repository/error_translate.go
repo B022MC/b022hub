@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	dbent "github.com/Wei-Shaw/sub2api/ent"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	dbent "github.com/B022MC/b022hub/ent"
+	infraerrors "github.com/B022MC/b022hub/internal/pkg/errors"
 	"github.com/lib/pq"
 )
 

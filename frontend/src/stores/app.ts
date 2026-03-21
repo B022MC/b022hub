@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, shallowRef } from 'vue'
 import type { Toast, ToastType, PublicSettings } from '@/types'
 import {
   checkUpdates as checkUpdatesAPI,
@@ -12,19 +12,23 @@ import {
   type ReleaseInfo
 } from '@/api/admin/system'
 import { getPublicSettings as fetchPublicSettingsAPI } from '@/api/auth'
+import { sanitizeProjectExternalUrl } from '@/utils/projectLinks'
 
 export const useAppStore = defineStore('app', () => {
+  type AppTheme = 'light' | 'dark'
+
   // ==================== State ====================
 
   const sidebarCollapsed = ref<boolean>(false)
   const mobileOpen = ref<boolean>(false)
   const loading = ref<boolean>(false)
   const toasts = ref<Toast[]>([])
+  const theme = shallowRef<AppTheme>('dark')
 
   // Public settings cache state
   const publicSettingsLoaded = ref<boolean>(false)
   const publicSettingsLoading = ref<boolean>(false)
-  const siteName = ref<string>('Sub2API')
+  const siteName = ref<string>('b022hub')
   const siteLogo = ref<string>('')
   const siteVersion = ref<string>('')
   const contactInfo = ref<string>('')
@@ -48,16 +52,74 @@ export const useAppStore = defineStore('app', () => {
 
   const hasActiveToasts = computed(() => toasts.value.length > 0)
   const backendModeEnabled = computed(() => cachedPublicSettings.value?.backend_mode_enabled ?? false)
+  const isDark = computed(() => theme.value === 'dark')
 
   const loadingCount = ref<number>(0)
 
   // ==================== Actions ====================
+
+  function normalizeReleaseInfo(info?: ReleaseInfo | null): ReleaseInfo | null {
+    if (!info) {
+      return null
+    }
+
+    return {
+      ...info,
+      html_url: sanitizeProjectExternalUrl(info.html_url)
+    }
+  }
+
+  function normalizePublicSettings(config: PublicSettings): PublicSettings {
+    return {
+      ...config,
+      doc_url: sanitizeProjectExternalUrl(config.doc_url)
+    }
+  }
 
   /**
    * Toggle sidebar collapsed state
    */
   function toggleSidebar(): void {
     sidebarCollapsed.value = !sidebarCollapsed.value
+  }
+
+  function resolvePreferredTheme(): AppTheme {
+    if (typeof window === 'undefined') {
+      return 'dark'
+    }
+
+    const savedTheme = window.localStorage.getItem('theme')
+
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      return savedTheme
+    }
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+
+  function applyTheme(nextTheme: AppTheme): void {
+    theme.value = nextTheme
+
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', nextTheme === 'dark')
+      document.documentElement.dataset.theme = nextTheme
+    }
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('theme', nextTheme)
+    }
+  }
+
+  function initTheme(): void {
+    applyTheme(resolvePreferredTheme())
+  }
+
+  function setTheme(nextTheme: AppTheme): void {
+    applyTheme(nextTheme)
+  }
+
+  function toggleTheme(): void {
+    applyTheme(isDark.value ? 'light' : 'dark')
   }
 
   /**
@@ -226,6 +288,7 @@ export const useAppStore = defineStore('app', () => {
     loading.value = false
     loadingCount.value = 0
     toasts.value = []
+    applyTheme('dark')
   }
 
   // ==================== Version Management ====================
@@ -255,13 +318,17 @@ export const useAppStore = defineStore('app', () => {
     versionLoading.value = true
     try {
       const data = await checkUpdatesAPI(force)
+      const normalizedReleaseInfo = normalizeReleaseInfo(data.release_info)
       currentVersion.value = data.current_version
       latestVersion.value = data.latest_version
       hasUpdate.value = data.has_update
       buildType.value = data.build_type || 'source'
-      releaseInfo.value = data.release_info || null
+      releaseInfo.value = normalizedReleaseInfo
       versionLoaded.value = true
-      return data
+      return {
+        ...data,
+        release_info: normalizedReleaseInfo || undefined
+      }
     } catch (error) {
       console.error('Failed to fetch version:', error)
       return null
@@ -284,13 +351,15 @@ export const useAppStore = defineStore('app', () => {
    * Apply settings to store state (internal helper to avoid code duplication)
    */
   function applySettings(config: PublicSettings): void {
-    cachedPublicSettings.value = config
-    siteName.value = config.site_name || 'Sub2API'
-    siteLogo.value = config.site_logo || ''
-    siteVersion.value = config.version || ''
-    contactInfo.value = config.contact_info || ''
-    apiBaseUrl.value = config.api_base_url || ''
-    docUrl.value = config.doc_url || ''
+    const normalizedConfig = normalizePublicSettings(config)
+
+    cachedPublicSettings.value = normalizedConfig
+    siteName.value = normalizedConfig.site_name || 'b022hub'
+    siteLogo.value = normalizedConfig.site_logo || ''
+    siteVersion.value = normalizedConfig.version || ''
+    contactInfo.value = normalizedConfig.contact_info || ''
+    apiBaseUrl.value = normalizedConfig.api_base_url || ''
+    docUrl.value = normalizedConfig.doc_url || ''
     publicSettingsLoaded.value = true
   }
 
@@ -301,8 +370,9 @@ export const useAppStore = defineStore('app', () => {
   async function fetchPublicSettings(force = false): Promise<PublicSettings | null> {
     // Check for injected config from server (eliminates flash)
     if (!publicSettingsLoaded.value && !force && window.__APP_CONFIG__) {
-      applySettings(window.__APP_CONFIG__)
-      return window.__APP_CONFIG__
+      const normalizedConfig = normalizePublicSettings(window.__APP_CONFIG__)
+      applySettings(normalizedConfig)
+      return normalizedConfig
     }
 
     // Return cached data if available and not forcing refresh
@@ -331,6 +401,8 @@ export const useAppStore = defineStore('app', () => {
         purchase_subscription_url: '',
         custom_menu_items: [],
         linuxdo_oauth_enabled: false,
+        linuxdo_credit_enabled: false,
+        linuxdo_credit_exchange_rate: 1,
         sora_client_enabled: false,
         backend_mode_enabled: false,
         version: siteVersion.value
@@ -345,8 +417,9 @@ export const useAppStore = defineStore('app', () => {
     publicSettingsLoading.value = true
     try {
       const data = await fetchPublicSettingsAPI()
-      applySettings(data)
-      return data
+      const normalizedData = normalizePublicSettings(data)
+      applySettings(normalizedData)
+      return normalizedData
     } catch (error) {
       console.error('Failed to fetch public settings:', error)
       return null
@@ -370,7 +443,7 @@ export const useAppStore = defineStore('app', () => {
    */
   function initFromInjectedConfig(): boolean {
     if (window.__APP_CONFIG__) {
-      applySettings(window.__APP_CONFIG__)
+      applySettings(normalizePublicSettings(window.__APP_CONFIG__))
       return true
     }
     return false
@@ -384,6 +457,7 @@ export const useAppStore = defineStore('app', () => {
     mobileOpen,
     loading,
     toasts,
+    theme,
 
     // Public settings state
     publicSettingsLoaded,
@@ -407,8 +481,12 @@ export const useAppStore = defineStore('app', () => {
     // Computed
     hasActiveToasts,
     backendModeEnabled,
+    isDark,
 
     // Actions
+    initTheme,
+    setTheme,
+    toggleTheme,
     toggleSidebar,
     setSidebarCollapsed,
     toggleMobileSidebar,

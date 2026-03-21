@@ -1,5 +1,5 @@
 /**
- * Core Type Definitions for Sub2API Frontend
+ * Core Type Definitions for b022hub Frontend
  */
 
 // ==================== Common Types ====================
@@ -105,6 +105,8 @@ export interface PublicSettings {
   purchase_subscription_url: string
   custom_menu_items: CustomMenuItem[]
   linuxdo_oauth_enabled: boolean
+  linuxdo_credit_enabled: boolean
+  linuxdo_credit_exchange_rate: number
   sora_client_enabled: boolean
   backend_mode_enabled: boolean
   version: string

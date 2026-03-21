@@ -4,15 +4,109 @@ export default {
     viewOnGithub: '在 GitHub 上查看',
     viewDocs: '查看文档',
     docs: '文档',
+    nav: {
+      home: '首页',
+      claude: 'Claude',
+      codex: 'Codex',
+      gemini: 'Gemini',
+      more: '能力',
+      features: '亮点',
+      scenarios: '适合谁',
+      models: '模型'
+    },
     switchToLight: '切换到浅色模式',
     switchToDark: '切换到深色模式',
     dashboard: '控制台',
     login: '登录',
     getStarted: '立即开始',
     goToDashboard: '进入控制台',
-    // 新增：面向用户的价值主张
-    heroSubtitle: '一个密钥，畅用多个 AI 模型',
-    heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
+    heroEyebrow: '为 CLI 工作流、多模型路由与团队接入打造',
+    heroSubtitle: '统一承载 Claude、Codex、Gemini 的 AI Runtime Hub',
+    heroPrefix: '把你的 AI 工作流接到',
+    heroDescription: 'b022hub 把 Claude Code、OpenAI Codex 和 Gemini CLI 放进同一个运行时入口。你可以复用一个 API 域名、一套密钥策略和一组路由能力，做出接近 Luck Hub 的沉浸式接入体验。',
+    heroTags: {
+      gateway: '统一网关 /v1',
+      routing: '多运行时路由',
+      cli: 'CLI 配置即插即用'
+    },
+    docsGuide: '查看接入文档',
+    installCommand: '安装命令',
+    sections: {
+      claude: {
+        badge: 'Claude Code',
+        title: '把 Claude Code 指到 b022hub',
+        description: '保留 Claude Code 原有工作流，只替换鉴权与 Base URL。你可以用统一网关承接 Anthropic 请求，并把配置沉淀到本地 settings.json。'
+      },
+      codex: {
+        badge: 'OpenAI Codex',
+        title: '让 Codex 直接走统一 responses 网关',
+        description: '按照 Codex 的 provider 配置写入 base_url、wire_api 和 auth 文件，保留原生 CLI 体验，同时把模型、密钥与流量策略收口到 b022hub。'
+      },
+      gemini: {
+        badge: 'Gemini CLI',
+        title: '给 Gemini CLI 一条稳定的兼容入口',
+        description: '通过 .env 和 settings.json 注入兼容地址与 API Key，让 Gemini CLI 在本地、远程开发机和共享环境里都保持同一套接入方式。'
+      }
+    },
+    progress: {
+      badge: 'Runtime Capabilities',
+      title: '项目当前已经落地的核心能力',
+      description: '这里不写规划，只展示代码里已经有的能力：兼容网关、账号调度、粘性会话、CLI 接入配置生成，以及后台的分组与访问控制配置。',
+      orbit: {
+        hubEyebrow: 'Unified Runtime',
+        hubDescription: '把 Claude、OpenAI、Gemini 三路接入收口到同一个域名、同一套路由与调度核心。',
+        vendors: {
+          claude: {
+            eyebrow: 'Anthropic Messages',
+            title: 'Claude',
+            description: '兼容 Claude Code 的 `/v1/messages` 工作流，保留原有终端使用方式。'
+          },
+          openai: {
+            eyebrow: 'Responses + Chat',
+            title: 'OpenAI',
+            description: '已经接住 Codex 所需的 `/v1/responses` 与 `/v1/chat/completions` 入口。'
+          },
+          gemini: {
+            eyebrow: 'Gemini Native',
+            title: 'Gemini',
+            description: '兼容 Gemini CLI 的 `/v1beta/models/*` 原生入口，并接入统一鉴权。'
+          }
+        }
+      },
+      completed: '已完成',
+      building: '建设中',
+      cards: {
+        gateway: {
+          title: '统一兼容网关',
+          description: '已经提供 `/v1/messages`、`/v1/responses`、`/v1/chat/completions` 和 Gemini 的 `/v1beta/models/*` 兼容入口。'
+        },
+        routing: {
+          title: '账号调度与粘性会话',
+          description: '已有按模型选账号、等待队列、并发控制、失败切换和粘性会话逻辑，支持多账号池稳定转发。'
+        },
+        workflow: {
+          title: '终端接入与后台控制',
+          description: '前端已经能生成 Claude、Codex、Gemini 的接入配置；后台也已有分组、模型路由、Claude Code 限制和 OpenAI Messages 调度开关。'
+        }
+      }
+    },
+    logo: {
+      activeLayer: '当前层',
+      layers: {
+        claude: 'Claude Route',
+        codex: 'Codex Route',
+        gemini: 'Gemini Route',
+        progress: 'b022hub Runtime'
+      }
+    },
+    showcase: {
+      title: '实时编排面板',
+      request: '请求入口',
+      routing: '智能路由',
+      policy: '额度策略',
+      response: '返回结果',
+      live: '稳定在线'
+    },
     tags: {
       subscriptionToApi: '订阅转 API',
       stickySession: '会话保持',
@@ -21,6 +115,7 @@ export default {
     // 用户痛点区块
     painPoints: {
       title: '你是否也遇到这些问题？',
+      description: '如果你在多个 AI 平台之间来回切换、同时又在意成本和稳定性，这几个问题通常会一起出现。',
       items: {
         expensive: {
           title: '订阅费用高',
@@ -45,6 +140,23 @@ export default {
       title: '我们帮你解决',
       subtitle: '简单三步，开始省心使用 AI'
     },
+    solutionSteps: {
+      title: '三步接入',
+      items: {
+        connect: {
+          title: '接入上游订阅',
+          desc: '把现有 Claude、GPT、Gemini 等账号统一接入到一个平台。'
+        },
+        issue: {
+          title: '生成统一密钥',
+          desc: '面向个人或团队发放 API Key，并配置额度、并发与权限。'
+        },
+        invoke: {
+          title: '直接开始调用',
+          desc: '你的应用只需要对接一个端点，模型切换和容错由平台处理。'
+        }
+      }
+    },
     features: {
       unifiedGateway: '一键接入',
       unifiedGatewayDesc: '获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。',
@@ -52,6 +164,30 @@ export default {
       multiAccountDesc: '智能调度多个上游账号，自动切换和负载均衡，告别频繁报错。',
       balanceQuota: '用多少付多少',
       balanceQuotaDesc: '按实际使用量计费，支持设置配额上限，团队用量一目了然。'
+    },
+    scenarios: {
+      title: '按你的工作方式来',
+      subtitle: '不是所有人都需要同一种 AI 接入方案，所以首页直接把常见用法讲清楚。',
+      items: {
+        maker: {
+          eyebrow: '独立开发者',
+          title: '一个密钥跑完侧项目与自动化脚本',
+          desc: '更适合想低成本试模型、快速切换供应商、少折腾账号体系的人。',
+          points: ['低成本试用多个模型', '脚本与工作流统一走一个端点', '减少账号和订阅维护']
+        },
+        team: {
+          eyebrow: '小团队',
+          title: '把预算、权限和可见性收拢到一个后台',
+          desc: '适合需要多人协作、配额控制和统一账单的团队场景。',
+          points: ['统一发放 API Key', '额度、并发和明细都可控', '多人共享时更容易管账']
+        },
+        power: {
+          eyebrow: 'AI 重度用户',
+          title: '把多平台订阅变成稳定的日常工作流',
+          desc: '适合长期依赖 Claude、GPT、Gemini，且对稳定性敏感的用户。',
+          points: ['多账号池降低单点限制', '高频切换模型更顺手', '出问题时更容易自动兜底']
+        }
+      }
     },
     // 优势对比
     comparison: {
@@ -97,7 +233,14 @@ export default {
       claude: 'Claude',
       gemini: 'Gemini',
       antigravity: 'Antigravity',
-      more: '更多'
+      more: '更多',
+      details: {
+        claude: '高质量对话与长文本任务',
+        gpt: '通用推理与工作流自动化',
+        gemini: '多模态与快速响应场景',
+        antigravity: '创意生产与实验性能力',
+        more: '更多上游能力持续接入中'
+      }
     },
     // CTA 区块
     cta: {
@@ -106,7 +249,8 @@ export default {
       button: '免费注册'
     },
     footer: {
-      allRightsReserved: '保留所有权利。'
+      allRightsReserved: '保留所有权利。',
+      forkNotice: '{siteName} 基于原始 Sub2API 项目进行二次开发与界面定制。'
     }
   },
 
@@ -182,8 +326,8 @@ export default {
 
   // Setup Wizard
   setup: {
-    title: 'Sub2API 安装向导',
-    description: '配置您的 Sub2API 实例',
+    title: 'b022hub 安装向导',
+    description: '配置您的 b022hub 实例',
     database: {
       title: '数据库配置',
       description: '连接到您的 PostgreSQL 数据库',
@@ -287,6 +431,7 @@ export default {
     total: '总计',
     balance: '余额',
     available: '可用',
+    copy: '复制',
     copiedToClipboard: '已复制到剪贴板',
     copied: '已复制',
     copyFailed: '复制失败',
@@ -1099,7 +1244,7 @@ export default {
         step1: {
           title: '创建 R2 存储桶',
           line1: '登录 Cloudflare Dashboard (dash.cloudflare.com)，左侧菜单选择「R2 对象存储」',
-          line2: '点击「创建存储桶」，输入名称（如 sub2api-backups），选择区域',
+          line2: '点击「创建存储桶」，输入名称（如 b022hub-backups），选择区域',
           line3: '点击创建完成'
         },
         step2: {
@@ -2101,7 +2246,7 @@ export default {
         antigravityOauth: 'Antigravity OAuth',
         antigravityApikey: '通过 Base URL + API Key 连接',
         soraApiKey: 'API Key / 上游透传',
-        soraApiKeyHint: '连接另一个 Sub2API 或兼容 API',
+        soraApiKeyHint: '连接另一个 b022hub 或兼容 API',
         soraBaseUrlRequired: 'Sora apikey 账号必须设置上游地址（Base URL）',
         soraBaseUrlInvalidScheme: 'Base URL 必须以 http:// 或 https:// 开头',
         upstream: '对接上游',
@@ -2368,7 +2513,7 @@ export default {
       poolMode: '池模式',
       poolModeHint: '上游为账号池时启用，错误不标记本地账号状态',
       poolModeInfo:
-        '启用后，上游 429/403/401 错误将自动重试而不标记账号限流或错误，适用于上游指向另一个 sub2api 实例的场景。',
+        '启用后，上游 429/403/401 错误将自动重试而不标记账号限流或错误，适用于上游指向另一个 b022hub 实例的场景。',
       poolModeRetryCount: '同账号重试次数',
       poolModeRetryCountHint: '仅在池模式下生效。0 表示不原地重试；默认 {default}，最大 {max}。',
       customErrorCodes: '自定义错误码',
@@ -2860,7 +3005,7 @@ export default {
       geminiImageTestMode: '模式：Gemini 生图测试',
       geminiImagePreview: '生成结果：',
       geminiImageReceived: '已收到第 {count} 张测试图片',
-      soraUpstreamBaseUrlHint: '上游 Sora 服务地址（另一个 Sub2API 实例或兼容 API）',
+      soraUpstreamBaseUrlHint: '上游 Sora 服务地址（另一个 b022hub 实例或兼容 API）',
       soraTestHint: 'Sora 测试将执行连通性与能力检测（/backend/me、订阅信息、Sora2 邀请码与剩余额度）。',
       soraTestTarget: '检测目标：Sora 账号能力',
       soraTestMode: '模式：连通性 + 能力探测',
@@ -4261,7 +4406,7 @@ export default {
       },
       linuxdo: {
         title: 'LinuxDo Connect 登录',
-        description: '配置 LinuxDo Connect OAuth，用于 Sub2API 用户登录',
+        description: '配置 LinuxDo Connect OAuth，用于 b022hub 用户登录',
         enable: '启用 LinuxDo 登录',
         enableHint: '在登录/注册页面显示 LinuxDo 登录入口',
         clientId: 'Client ID',
@@ -4277,6 +4422,28 @@ export default {
         redirectUrlHint: '需与 Connect.Linux.Do 中配置的回调地址一致（必须是 http(s) 完整 URL）',
         quickSetCopy: '使用当前站点生成并复制',
         redirectUrlSetAndCopied: '已使用当前站点生成回调地址并复制到剪贴板'
+      },
+      linuxdoCredit: {
+        title: 'LINUX DO Credit 积分交易',
+        description: '配置 LINUX DO Credit 商户信息，用于站内余额充值',
+        enable: '启用积分交易',
+        enableHint: '在充值页面展示 LINUX DO Credit 支付入口',
+        clientId: '商户 ID',
+        clientIdPlaceholder: '例如：10001',
+        clientSecret: '商户密钥',
+        clientSecretPlaceholder: '请输入 LINUX DO Credit 商户密钥',
+        clientSecretHint: '用于签名订单和校验异步通知，请妥善保管',
+        clientSecretConfiguredPlaceholder: '已配置，留空则保留当前值',
+        clientSecretConfiguredHint: '密钥已配置，留空则保留当前值。',
+        exchangeRate: '充值汇率',
+        exchangeRateHint: '用户支付 1 单位金额可兑换多少站内余额，例如 1 表示 1:1，10 表示 1 元兑换 10 余额。',
+        callbackTitle: '回调地址建议',
+        callbackHint: '请将下面两个地址分别填入 LINUX DO Credit 商户后台的同步跳转地址和异步通知地址。',
+        returnUrl: '同步跳转地址',
+        returnUrlCopied: '同步跳转地址已复制',
+        notifyUrl: '异步通知地址',
+        notifyUrlCopied: '异步通知地址已复制',
+        copy: '复制'
       },
       defaults: {
         title: '用户默认设置',
@@ -4317,10 +4484,10 @@ export default {
           '禁用用户注册、公开页面和自助服务功能。仅管理员可以登录和管理平台。',
         siteName: '站点名称',
         siteNameHint: '显示在邮件和页面标题中',
-        siteNamePlaceholder: 'Sub2API',
+        siteNamePlaceholder: 'b022hub',
         siteSubtitle: '站点副标题',
         siteSubtitleHint: '显示在登录和注册页面',
-        siteSubtitlePlaceholder: '订阅转 API 转换平台',
+        siteSubtitlePlaceholder: '统一 AI Runtime Hub',
         apiBaseUrl: 'API 端点地址',
         apiBaseUrlHint: '用于"使用密钥"和"导入到 CC Switch"功能，留空则使用当前站点地址',
         apiBaseUrlPlaceholder: 'https://api.example.com',
@@ -4357,8 +4524,8 @@ export default {
         urlHint: '必须是完整的 http(s) 链接',
         iframeWarning:
           '⚠️ iframe 提示：部分网站会通过 X-Frame-Options 或 CSP（frame-ancestors）禁止被 iframe 嵌入，出现空白时可引导用户使用”新窗口打开”。',
-        integrationDoc: '支付集成文档',
-        integrationDocHint: '包含接口说明、幂等语义及示例代码'
+        integrationDoc: '本地支付接入说明',
+        integrationDocHint: '说明 iframe 嵌入参数、主题同步和接入注意事项'
       },
       soraClient: {
         title: 'Sora 客户端',
@@ -4406,7 +4573,7 @@ export default {
         fromEmail: '发件人邮箱',
         fromEmailPlaceholder: "noreply{'@'}example.com",
         fromName: '发件人名称',
-        fromNamePlaceholder: 'Sub2API',
+        fromNamePlaceholder: 'b022hub',
         useTls: '使用 TLS',
         useTlsHint: '为 SMTP 连接启用 TLS 加密'
       },
@@ -4717,9 +4884,10 @@ export default {
 
   // Version Badge
   version: {
-    currentVersion: '当前版本',
+    currentVersion: '当前构建',
     latestVersion: '最新版本',
     upToDate: '已是最新版本',
+    buildTag: '构建',
     updateAvailable: '有新版本可用！',
     releaseNotes: '更新日志',
     noReleaseNotes: '暂无更新日志',
@@ -4747,7 +4915,38 @@ export default {
     notEnabledTitle: '该功能未开启',
     notEnabledDesc: '管理员暂未开启充值/订阅入口，请联系管理员。',
     notConfiguredTitle: '充值/订阅链接未配置',
-    notConfiguredDesc: '管理员已开启入口，但尚未配置充值/订阅链接，请联系管理员。'
+    notConfiguredDesc: '管理员已开启入口，但尚未配置充值/订阅链接，请联系管理员。',
+    linuxdoCredit: {
+      eyebrow: 'LINUX DO Credit',
+      title: '余额充值',
+      description: '创建订单后会跳转到 LINUX DO Credit 完成支付，支付成功后系统会自动给当前账号加余额。',
+      exchangeRate: '当前汇率',
+      amountLabel: '支付金额',
+      estimatedCredit: '预计到账余额',
+      returnHint: '支付完成后会返回本页，你也可以稍后手动查询订单状态。',
+      payNow: '立即支付',
+      creating: '正在创建订单...',
+      createOrderFailed: '创建订单失败',
+      invalidAmount: '请输入有效的支付金额',
+      latestOrder: '当前订单',
+      noOrderYet: '还没有创建订单',
+      orderNumber: '订单号',
+      orderAmount: '支付金额',
+      orderCredit: '到账余额',
+      checkStatus: '查询支付状态',
+      syncing: '正在查询...',
+      syncFailed: '查询订单状态失败',
+      paymentSuccess: '支付成功，余额已到账',
+      redirectingToPay: '正在跳转到支付页面',
+      returnDetected: '已检测到支付回跳，可继续查询订单状态。',
+      recentOrders: '最近订单',
+      recentOrdersHint: '仅展示当前账号最近创建的充值订单',
+      emptyOrders: '暂无充值订单记录',
+      status: {
+        pending: '待支付',
+        paid: '已支付'
+      }
+    }
   },
 
   // Custom Page (iframe embed)
@@ -4826,16 +5025,16 @@ export default {
     // Admin tour steps
     admin: {
       welcome: {
-        title: '👋 欢迎使用 Sub2API',
+        title: '👋 欢迎使用 b022hub',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Sub2API 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>🎯 核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li>🔗 <b>账号池</b> - 连接多个上游 AI 服务商账号</li><li>🔑 <b>密钥分发</b> - 为用户生成独立的 API Key</li><li>💰 <b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">b022hub 是一个强大的 AI 服务中转平台，让您轻松管理和分发 AI 服务。</p><p style="margin-bottom: 12px;"><b>🎯 核心功能：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>分组管理</b> - 创建不同的服务套餐（VIP、免费试用等）</li><li>🔗 <b>账号池</b> - 连接多个上游 AI 服务商账号</li><li>🔑 <b>密钥分发</b> - 为用户生成独立的 API Key</li><li>💰 <b>计费管理</b> - 灵活的费率和配额控制</li></ul><p style="color: #10b981; font-weight: 600;">接下来，我们将用 3 分钟带您完成首次配置 →</p></div>',
         nextBtn: '开始配置 🚀',
         prevBtn: '跳过'
       },
       groupManage: {
         title: '📦 第一步：分组管理',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 Sub2API 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>什么是分组？</b></p><p style="margin-bottom: 12px;">分组是 b022hub 的核心概念，它就像一个"服务套餐"：</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 每个分组可以包含多个上游账号</li><li>💰 每个分组有独立的计费倍率</li><li>👥 可以设置为公开或专属分组</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>您可以创建"VIP专线"（高倍率）和"免费试用"（低倍率）两个分组</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 点击左侧的"分组管理"开始</p></div>'
       },
       createGroup: {
         title: '➕ 创建新分组',
@@ -4947,9 +5146,9 @@ export default {
     // User tour steps
     user: {
       welcome: {
-        title: '👋 欢迎使用 Sub2API',
+        title: '👋 欢迎使用 b022hub',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 Sub2API AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 b022hub AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
         nextBtn: '开始 🚀',
         prevBtn: '跳过'
       },

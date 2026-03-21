@@ -5,82 +5,89 @@ export default {
   theme: {
     extend: {
       colors: {
-        // 主色调 - Teal/Cyan 青色系
+        // 主色调 - b022hub 暖陶土色
         primary: {
-          50: '#f0fdfa',
-          100: '#ccfbf1',
-          200: '#99f6e4',
-          300: '#5eead4',
-          400: '#2dd4bf',
-          500: '#14b8a6',
-          600: '#0d9488',
-          700: '#0f766e',
-          800: '#115e59',
-          900: '#134e4a',
-          950: '#042f2e'
+          50: '#fff5ef',
+          100: '#ffe7da',
+          200: '#ffd0b6',
+          300: '#f3ae8a',
+          400: '#df8d68',
+          500: '#cc785c',
+          600: '#b96947',
+          700: '#935238',
+          800: '#6d3d2b',
+          900: '#47261d',
+          950: '#2a1510'
         },
-        // 辅助色 - 深蓝灰
+        // 辅助色 - 柔和蓝灰，保留一点冷调对比
         accent: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617'
+          50: '#eff5ff',
+          100: '#d9e7ff',
+          200: '#bdd5ff',
+          300: '#93b8f3',
+          400: '#6f95d8',
+          500: '#5378ba',
+          600: '#405f96',
+          700: '#304973',
+          800: '#223353',
+          900: '#151f34',
+          950: '#0d1323'
         },
-        // 深色模式背景
+        // 深色模式背景 - 暖黑褐色
         dark: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617'
+          50: '#f8f3e7',
+          100: '#efe7d8',
+          200: '#ddd2c0',
+          300: '#c9beaf',
+          400: '#aa9f90',
+          500: '#897d70',
+          600: '#66594e',
+          700: '#3b322c',
+          800: '#231e1a',
+          900: '#171311',
+          950: '#0e0c0b'
         }
       },
       fontFamily: {
         sans: [
-          'system-ui',
-          '-apple-system',
-          'BlinkMacSystemFont',
+          'Manrope',
+          'SF Pro Display',
+          'PingFang SC',
+          'Hiragino Sans GB',
+          'Microsoft YaHei',
           'Segoe UI',
-          'Roboto',
           'Helvetica Neue',
-          'Arial',
+          'sans-serif'
+        ],
+        display: [
+          'Cormorant Garamond',
+          'Noto Serif SC',
+          'Space Grotesk',
+          'Manrope',
           'PingFang SC',
           'Hiragino Sans GB',
           'Microsoft YaHei',
           'sans-serif'
         ],
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+        mono: ['JetBrains Mono', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
       },
       boxShadow: {
         glass: '0 8px 32px rgba(0, 0, 0, 0.08)',
         'glass-sm': '0 4px 16px rgba(0, 0, 0, 0.06)',
-        glow: '0 0 20px rgba(20, 184, 166, 0.25)',
-        'glow-lg': '0 0 40px rgba(20, 184, 166, 0.35)',
+        glow: '0 0 20px rgba(204, 120, 92, 0.28)',
+        'glow-lg': '0 0 40px rgba(204, 120, 92, 0.38)',
         card: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
         'card-hover': '0 10px 40px rgba(0, 0, 0, 0.08)',
         'inner-glow': 'inset 0 1px 0 rgba(255, 255, 255, 0.1)'
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-primary': 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+        'gradient-primary': 'linear-gradient(135deg, #cc785c 0%, #b96947 100%)',
         'gradient-dark': 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
         'gradient-glass':
           'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
         'mesh-gradient':
-          'radial-gradient(at 40% 20%, rgba(20, 184, 166, 0.12) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(6, 182, 212, 0.08) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(20, 184, 166, 0.08) 0px, transparent 50%)'
+          'radial-gradient(at 40% 20%, rgba(204, 120, 92, 0.16) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(122, 185, 255, 0.08) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(212, 162, 127, 0.1) 0px, transparent 50%)'
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out',
@@ -118,8 +125,8 @@ export default {
           '100%': { backgroundPosition: '200% 0' }
         },
         glow: {
-          '0%': { boxShadow: '0 0 20px rgba(20, 184, 166, 0.25)' },
-          '100%': { boxShadow: '0 0 30px rgba(20, 184, 166, 0.4)' }
+          '0%': { boxShadow: '0 0 20px rgba(204, 120, 92, 0.28)' },
+          '100%': { boxShadow: '0 0 30px rgba(204, 120, 92, 0.42)' }
         }
       },
       backdropBlur: {

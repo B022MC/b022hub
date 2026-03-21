@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/Wei-Shaw/sub2api/internal/handler/admin"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/handler/admin"
+	"github.com/B022MC/b022hub/internal/service"
 
 	"github.com/google/wire"
 )
@@ -77,6 +77,7 @@ func ProvideHandlers(
 	apiKeyHandler *APIKeyHandler,
 	usageHandler *UsageHandler,
 	redeemHandler *RedeemHandler,
+	linuxDoCreditHandler *LinuxDoCreditHandler,
 	subscriptionHandler *SubscriptionHandler,
 	announcementHandler *AnnouncementHandler,
 	adminHandlers *AdminHandlers,
@@ -95,6 +96,7 @@ func ProvideHandlers(
 		APIKey:        apiKeyHandler,
 		Usage:         usageHandler,
 		Redeem:        redeemHandler,
+		LinuxDoCredit: linuxDoCreditHandler,
 		Subscription:  subscriptionHandler,
 		Announcement:  announcementHandler,
 		Admin:         adminHandlers,
@@ -115,11 +117,13 @@ var ProviderSet = wire.NewSet(
 	NewAPIKeyHandler,
 	NewUsageHandler,
 	NewRedeemHandler,
+	NewLinuxDoCreditHandler,
 	NewSubscriptionHandler,
 	NewAnnouncementHandler,
 	NewGatewayHandler,
 	NewOpenAIGatewayHandler,
 	NewSoraGatewayHandler,
+	NewSoraClientHandler,
 	NewTotpHandler,
 	ProvideSettingHandler,
 

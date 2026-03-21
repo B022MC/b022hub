@@ -61,6 +61,10 @@ export interface SystemSettings {
   linuxdo_connect_client_id: string
   linuxdo_connect_client_secret_configured: boolean
   linuxdo_connect_redirect_url: string
+  linuxdo_credit_enabled: boolean
+  linuxdo_credit_client_id: string
+  linuxdo_credit_client_secret_configured: boolean
+  linuxdo_credit_exchange_rate: number
 
   // Model fallback configuration
   enable_model_fallback: boolean
@@ -126,6 +130,10 @@ export interface UpdateSettingsRequest {
   linuxdo_connect_client_id?: string
   linuxdo_connect_client_secret?: string
   linuxdo_connect_redirect_url?: string
+  linuxdo_credit_enabled?: boolean
+  linuxdo_credit_client_id?: string
+  linuxdo_credit_client_secret?: string
+  linuxdo_credit_exchange_rate?: number
   enable_model_fallback?: boolean
   fallback_model_anthropic?: string
   fallback_model_openai?: string

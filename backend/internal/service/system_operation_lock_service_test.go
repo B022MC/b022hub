@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	infraerrors "github.com/B022MC/b022hub/internal/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 

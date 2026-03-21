@@ -121,9 +121,9 @@ const options = computed(() => {
         labels: { color: c.text, usePointStyle: true, boxWidth: 6, font: { size: 10 } }
       },
       tooltip: {
-        backgroundColor: isDarkMode.value ? '#1f2937' : '#ffffff',
-        titleColor: isDarkMode.value ? '#f3f4f6' : '#111827',
-        bodyColor: isDarkMode.value ? '#d1d5db' : '#4b5563',
+        backgroundColor: isDarkMode.value ? '#1f1a17' : '#fff8f1',
+        titleColor: isDarkMode.value ? '#f8f3e7' : '#2b2118',
+        bodyColor: isDarkMode.value ? '#c9c3b4' : '#5f5144',
         borderColor: c.grid,
         borderWidth: 1,
         padding: 10,
@@ -155,7 +155,7 @@ const options = computed(() => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 dark:bg-dark-800 dark:ring-dark-700">
+  <div class="ops-card-shell flex h-full flex-col rounded-3xl p-6">
     <div class="mb-4 flex shrink-0 items-center justify-between">
       <h3 class="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
         <svg class="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -172,7 +172,7 @@ const options = computed(() => {
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-dark-700 dark:bg-dark-900 dark:text-gray-300 dark:hover:bg-dark-800"
+          class="ops-button inline-flex items-center rounded-lg px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
           :disabled="!hasRequestErrors"
           @click="emit('openRequestErrors')"
         >
@@ -180,7 +180,7 @@ const options = computed(() => {
         </button>
         <button
           type="button"
-          class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-dark-700 dark:bg-dark-900 dark:text-gray-300 dark:hover:bg-dark-800"
+          class="ops-button inline-flex items-center rounded-lg px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
           :disabled="!hasUpstreamErrors"
           @click="emit('openUpstreamErrors')"
         >

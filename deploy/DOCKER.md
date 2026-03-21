@@ -1,6 +1,6 @@
-# Sub2API Docker Image
+# b022hub Docker Image
 
-Sub2API is an AI API Gateway Platform for distributing and managing AI product subscription API quotas.
+b022hub is an AI API Gateway Platform for distributing and managing AI product subscription API quotas.
 
 ## Quick Start
 
@@ -72,5 +72,5 @@ volumes:
 
 ## Links
 
-- [GitHub Repository](https://github.com/weishaw/sub2api)
-- [Documentation](https://github.com/weishaw/sub2api#readme)
+- [GitHub Repository](https://github.com/B022MC/b022hub)
+- [Documentation](https://github.com/B022MC/b022hub#readme)

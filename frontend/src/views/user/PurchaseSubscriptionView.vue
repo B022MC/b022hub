@@ -9,7 +9,7 @@
         </div>
 
         <div
-          v-else-if="!purchaseEnabled"
+          v-else-if="!pageEnabled"
           class="flex h-full items-center justify-center p-10 text-center"
         >
           <div class="max-w-md">
@@ -26,6 +26,12 @@
             </p>
           </div>
         </div>
+
+        <LinuxDoCreditPurchasePanel
+          v-else-if="linuxDoCreditEnabled"
+          :exchange-rate="linuxDoCreditExchangeRate"
+          :initial-out-trade-no="initialOutTradeNo"
+        />
 
         <div
           v-else-if="!isValidUrl"
@@ -69,14 +75,17 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores'
 import { useAuthStore } from '@/stores/auth'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
+import LinuxDoCreditPurchasePanel from '@/components/purchase/LinuxDoCreditPurchasePanel.vue'
 import { buildEmbeddedUrl, detectTheme } from '@/utils/embedded-url'
 
 const { t, locale } = useI18n()
+const route = useRoute()
 const appStore = useAppStore()
 const authStore = useAuthStore()
 
@@ -86,6 +95,23 @@ let themeObserver: MutationObserver | null = null
 
 const purchaseEnabled = computed(() => {
   return appStore.cachedPublicSettings?.purchase_subscription_enabled ?? false
+})
+
+const linuxDoCreditEnabled = computed(() => {
+  return appStore.cachedPublicSettings?.linuxdo_credit_enabled ?? false
+})
+
+const linuxDoCreditExchangeRate = computed(() => {
+  return appStore.cachedPublicSettings?.linuxdo_credit_exchange_rate ?? 1
+})
+
+const pageEnabled = computed(() => {
+  return purchaseEnabled.value || linuxDoCreditEnabled.value
+})
+
+const initialOutTradeNo = computed(() => {
+  const value = route.query.out_trade_no
+  return typeof value === 'string' ? value : ''
 })
 
 const purchaseUrl = computed(() => {

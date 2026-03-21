@@ -666,6 +666,11 @@ defineExpose({
   flex: 1;
   min-height: 0;
   isolation: isolate;
+  background: rgba(255, 251, 245, 0.74);
+}
+
+.dark .table-wrapper {
+  background: rgba(18, 16, 14, 0.82);
 }
 
 /* 表头容器，确保在滚动时覆盖表体内容 */
@@ -673,17 +678,22 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 200;
-  background-color: rgb(249 250 251);
+  background-color: rgba(244, 236, 226, 0.84);
 }
 
 .dark .table-wrapper .table-header {
-  background-color: rgb(31 41 55);
+  background-color: rgba(31, 27, 25, 0.96);
 }
 
 /* 表体保持在表头下方 */
 .table-body {
   position: relative;
   z-index: 0;
+  background: rgba(255, 251, 245, 0.74);
+}
+
+.dark .table-body {
+  background: rgba(18, 16, 14, 0.82);
 }
 
 /* 所有表头单元格固定在顶部 */
@@ -691,11 +701,11 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 210; /* 必须高于所有表体内容 */
-  background-color: rgb(249 250 251);
+  background-color: rgba(244, 236, 226, 0.84);
 }
 
 .dark .sticky-header-cell {
-  background-color: rgb(31 41 55);
+  background-color: rgba(31, 27, 25, 0.96);
 }
 
 /* Sticky 列基础样式 */
@@ -731,20 +741,20 @@ defineExpose({
 
 /* 表体 sticky 列背景 */
 tbody .sticky-col {
-  background-color: white;
+  background-color: rgba(255, 251, 245, 0.96);
 }
 
 .dark tbody .sticky-col {
-  background-color: rgb(17 24 39);
+  background-color: rgba(18, 16, 14, 0.96);
 }
 
 /* hover 状态保持 */
 tbody tr:hover .sticky-col {
-  background-color: rgb(249 250 251);
+  background-color: rgba(249, 244, 237, 0.98);
 }
 
 .dark tbody tr:hover .sticky-col {
-  background-color: rgb(31 41 55);
+  background-color: rgba(36, 31, 29, 0.96);
 }
 
 /* 阴影只在可滚动时显示 */

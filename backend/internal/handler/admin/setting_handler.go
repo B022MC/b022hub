@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
-	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
-	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/B022MC/b022hub/internal/config"
+	"github.com/B022MC/b022hub/internal/handler/dto"
+	"github.com/B022MC/b022hub/internal/pkg/response"
+	"github.com/B022MC/b022hub/internal/server/middleware"
+	"github.com/B022MC/b022hub/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -98,6 +98,10 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		LinuxDoConnectClientID:               settings.LinuxDoConnectClientID,
 		LinuxDoConnectClientSecretConfigured: settings.LinuxDoConnectClientSecretConfigured,
 		LinuxDoConnectRedirectURL:            settings.LinuxDoConnectRedirectURL,
+		LinuxDoCreditEnabled:                 settings.LinuxDoCreditEnabled,
+		LinuxDoCreditClientID:                settings.LinuxDoCreditClientID,
+		LinuxDoCreditClientSecretConfigured:  settings.LinuxDoCreditClientSecretConfigured,
+		LinuxDoCreditExchangeRate:            settings.LinuxDoCreditExchangeRate,
 		SiteName:                             settings.SiteName,
 		SiteLogo:                             settings.SiteLogo,
 		SiteSubtitle:                         settings.SiteSubtitle,
@@ -158,10 +162,14 @@ type UpdateSettingsRequest struct {
 	TurnstileSecretKey string `json:"turnstile_secret_key"`
 
 	// LinuxDo Connect OAuth 登录
-	LinuxDoConnectEnabled      bool   `json:"linuxdo_connect_enabled"`
-	LinuxDoConnectClientID     string `json:"linuxdo_connect_client_id"`
-	LinuxDoConnectClientSecret string `json:"linuxdo_connect_client_secret"`
-	LinuxDoConnectRedirectURL  string `json:"linuxdo_connect_redirect_url"`
+	LinuxDoConnectEnabled      bool    `json:"linuxdo_connect_enabled"`
+	LinuxDoConnectClientID     string  `json:"linuxdo_connect_client_id"`
+	LinuxDoConnectClientSecret string  `json:"linuxdo_connect_client_secret"`
+	LinuxDoConnectRedirectURL  string  `json:"linuxdo_connect_redirect_url"`
+	LinuxDoCreditEnabled       bool    `json:"linuxdo_credit_enabled"`
+	LinuxDoCreditClientID      string  `json:"linuxdo_credit_client_id"`
+	LinuxDoCreditClientSecret  string  `json:"linuxdo_credit_client_secret"`
+	LinuxDoCreditExchangeRate  float64 `json:"linuxdo_credit_exchange_rate"`
 
 	// OEM设置
 	SiteName                    string                `json:"site_name"`
@@ -300,6 +308,25 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			req.LinuxDoConnectClientSecret = previousSettings.LinuxDoConnectClientSecret
 		}
+	}
+
+	if req.LinuxDoCreditEnabled {
+		req.LinuxDoCreditClientID = strings.TrimSpace(req.LinuxDoCreditClientID)
+		req.LinuxDoCreditClientSecret = strings.TrimSpace(req.LinuxDoCreditClientSecret)
+		if req.LinuxDoCreditClientID == "" {
+			response.BadRequest(c, "LinuxDo Credit Client ID is required when enabled")
+			return
+		}
+		if req.LinuxDoCreditClientSecret == "" {
+			if previousSettings.LinuxDoCreditClientSecret == "" {
+				response.BadRequest(c, "LinuxDo Credit Client Secret is required when enabled")
+				return
+			}
+			req.LinuxDoCreditClientSecret = previousSettings.LinuxDoCreditClientSecret
+		}
+	}
+	if req.LinuxDoCreditExchangeRate <= 0 {
+		req.LinuxDoCreditExchangeRate = 1
 	}
 
 	// “购买订阅”页面配置验证
@@ -483,6 +510,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		LinuxDoConnectClientID:           req.LinuxDoConnectClientID,
 		LinuxDoConnectClientSecret:       req.LinuxDoConnectClientSecret,
 		LinuxDoConnectRedirectURL:        req.LinuxDoConnectRedirectURL,
+		LinuxDoCreditEnabled:             req.LinuxDoCreditEnabled,
+		LinuxDoCreditClientID:            req.LinuxDoCreditClientID,
+		LinuxDoCreditClientSecret:        req.LinuxDoCreditClientSecret,
+		LinuxDoCreditExchangeRate:        req.LinuxDoCreditExchangeRate,
 		SiteName:                         req.SiteName,
 		SiteLogo:                         req.SiteLogo,
 		SiteSubtitle:                     req.SiteSubtitle,
@@ -580,6 +611,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		LinuxDoConnectClientID:               updatedSettings.LinuxDoConnectClientID,
 		LinuxDoConnectClientSecretConfigured: updatedSettings.LinuxDoConnectClientSecretConfigured,
 		LinuxDoConnectRedirectURL:            updatedSettings.LinuxDoConnectRedirectURL,
+		LinuxDoCreditEnabled:                 updatedSettings.LinuxDoCreditEnabled,
+		LinuxDoCreditClientID:                updatedSettings.LinuxDoCreditClientID,
+		LinuxDoCreditClientSecretConfigured:  updatedSettings.LinuxDoCreditClientSecretConfigured,
+		LinuxDoCreditExchangeRate:            updatedSettings.LinuxDoCreditExchangeRate,
 		SiteName:                             updatedSettings.SiteName,
 		SiteLogo:                             updatedSettings.SiteLogo,
 		SiteSubtitle:                         updatedSettings.SiteSubtitle,
@@ -694,6 +729,18 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.LinuxDoConnectRedirectURL != after.LinuxDoConnectRedirectURL {
 		changed = append(changed, "linuxdo_connect_redirect_url")
+	}
+	if before.LinuxDoCreditEnabled != after.LinuxDoCreditEnabled {
+		changed = append(changed, "linuxdo_credit_enabled")
+	}
+	if before.LinuxDoCreditClientID != after.LinuxDoCreditClientID {
+		changed = append(changed, "linuxdo_credit_client_id")
+	}
+	if req.LinuxDoCreditClientSecret != "" {
+		changed = append(changed, "linuxdo_credit_client_secret")
+	}
+	if before.LinuxDoCreditExchangeRate != after.LinuxDoCreditExchangeRate {
+		changed = append(changed, "linuxdo_credit_exchange_rate")
 	}
 	if before.SiteName != after.SiteName {
 		changed = append(changed, "site_name")

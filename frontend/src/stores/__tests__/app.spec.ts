@@ -17,6 +17,20 @@ describe('useAppStore', () => {
     vi.useFakeTimers()
     // 清除 window.__APP_CONFIG__
     delete (window as any).__APP_CONFIG__
+    localStorage.clear()
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('dark'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
   })
 
   afterEach(() => {
@@ -156,6 +170,33 @@ describe('useAppStore', () => {
     })
   })
 
+  describe('主题管理', () => {
+    it('initTheme 读取本地存储并同步到 document', () => {
+      localStorage.setItem('theme', 'light')
+      const store = useAppStore()
+
+      store.initTheme()
+
+      expect(store.theme).toBe('light')
+      expect(store.isDark).toBe(false)
+      expect(document.documentElement.classList.contains('dark')).toBe(false)
+      expect(document.documentElement.dataset.theme).toBe('light')
+    })
+
+    it('toggleTheme 在 light 和 dark 之间切换', () => {
+      const store = useAppStore()
+      store.setTheme('dark')
+
+      store.toggleTheme()
+      expect(store.theme).toBe('light')
+      expect(localStorage.getItem('theme')).toBe('light')
+
+      store.toggleTheme()
+      expect(store.theme).toBe('dark')
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
+    })
+  })
+
   // --- Loading 状态 ---
 
   describe('Loading 状态管理', () => {
@@ -253,7 +294,7 @@ describe('useAppStore', () => {
       const windowAny = window as any
       windowAny.__APP_CONFIG__ = {
         site_name: 'TestSite',
-        site_logo: '/logo.png',
+        site_logo: '/b022-logo.svg',
         version: '1.0.0',
         contact_info: 'test@test.com',
         api_base_url: 'https://api.test.com',
@@ -265,9 +306,24 @@ describe('useAppStore', () => {
 
       expect(result).toBe(true)
       expect(store.siteName).toBe('TestSite')
-      expect(store.siteLogo).toBe('/logo.png')
+      expect(store.siteLogo).toBe('/b022-logo.svg')
       expect(store.siteVersion).toBe('1.0.0')
       expect(store.publicSettingsLoaded).toBe(true)
+    })
+
+    it('会屏蔽指向原项目仓库的文档链接', () => {
+      const windowAny = window as any
+      windowAny.__APP_CONFIG__ = {
+        site_name: 'TestSite',
+        doc_url: 'https://github.com/B022MC/b022hub'
+      }
+
+      const store = useAppStore()
+      const result = store.initFromInjectedConfig()
+
+      expect(result).toBe(true)
+      expect(store.docUrl).toBe('')
+      expect(store.cachedPublicSettings?.doc_url).toBe('')
     })
 
     it('无注入配置时返回 false', () => {
