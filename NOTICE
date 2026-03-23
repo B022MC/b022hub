@@ -1,0 +1,13 @@
+b022hub is an independent fork of the Sub2API project.
+
+Upstream project:
+- Repository: https://github.com/Wei-Shaw/sub2api
+- License: MIT
+
+This repository contains:
+- code originating from the upstream Sub2API project; and
+- subsequent modifications made for the b022hub fork by B022MC and contributors.
+
+The upstream MIT license text is preserved in `LICENSE` and must remain included in copies or substantial portions of the software.
+
+b022hub is not affiliated with or endorsed by the upstream Sub2API maintainers. Third-party product names, service names, and trademarks referenced in this repository remain the property of their respective owners.

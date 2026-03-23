@@ -20,6 +20,18 @@
 
 b022hub 是一个基于 Sub2API 的个性化 AI API 网关项目，保留原有的订阅配额分发与管理能力，同时对品牌、首页视觉和自部署体验做了定制化调整。
 
+## 开源说明
+
+b022hub 是一个独立维护的 Sub2API 社区 fork，不是上游官方仓库，也不是官方托管服务。
+
+当你再次分发或公开发布你自己的修改版本时，建议至少做到：
+
+- 保留本仓库内的 MIT 许可文本；
+- 保留对上游 Sub2API 的来源说明；
+- 使用你自己的项目名称和标识，避免被误认为上游官方版本。
+
+归属与仓库协作约定见 [NOTICE](NOTICE)、[CONTRIBUTING.md](CONTRIBUTING.md) 和 [SECURITY.md](SECURITY.md)。
+
 ## 核心功能
 
 - **多账号管理** - 支持多种上游账号类型（OAuth、API Key）
@@ -622,7 +634,7 @@ sub2api/
 
 ## 许可证
 
-MIT License
+MIT License。本仓库包含上游 Sub2API 的代码基础以及 b022hub fork 的后续修改；归属说明见 [NOTICE](NOTICE)。
 
 ---
 

@@ -2,6 +2,12 @@
 
 b022hub is an AI API Gateway Platform for distributing and managing AI product subscription API quotas.
 
+Examples below use the GitHub Container Registry image published from this fork:
+
+`ghcr.io/b022mc/sub2api:latest`
+
+If you fork this repository and publish images under your own namespace, replace the image reference accordingly.
+
 ## Quick Start
 
 ```bash
@@ -10,7 +16,7 @@ docker run -d \
   -p 8080:8080 \
   -e DATABASE_URL="postgres://user:pass@host:5432/sub2api" \
   -e REDIS_URL="redis://host:6379" \
-  weishaw/sub2api:latest
+  ghcr.io/b022mc/sub2api:latest
 ```
 
 ## Docker Compose
@@ -20,7 +26,7 @@ version: '3.8'
 
 services:
   sub2api:
-    image: weishaw/sub2api:latest
+    image: ghcr.io/b022mc/sub2api:latest
     ports:
       - "8080:8080"
     environment:
@@ -74,3 +80,4 @@ volumes:
 
 - [GitHub Repository](https://github.com/B022MC/b022hub)
 - [Documentation](https://github.com/B022MC/b022hub#readme)
+- [GHCR Package](https://github.com/B022MC/b022hub/pkgs/container/sub2api)

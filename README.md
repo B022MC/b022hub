@@ -20,6 +20,18 @@ English | [中文](README_CN.md)
 
 b022hub is a personalized AI API gateway based on Sub2API. It keeps the original quota distribution and management workflow while adapting the branding, landing page style, and self-hosted experience for this project.
 
+## Open Source Status
+
+b022hub is an independent, community-maintained fork of Sub2API. It is not the official upstream repository or hosted service.
+
+When redistributing or publishing modified versions of this project:
+
+- keep the MIT license text in this repository;
+- preserve the upstream Sub2API attribution; and
+- use your own project identity so users do not mistake your fork for the upstream project.
+
+For attribution and repository policies, see [NOTICE](NOTICE), [CONTRIBUTING.md](CONTRIBUTING.md), and [SECURITY.md](SECURITY.md).
+
 ## Features
 
 - **Multi-Account Management** - Support multiple upstream account types (OAuth, API Key)
@@ -560,7 +572,7 @@ sub2api/
 
 ## License
 
-MIT License
+MIT License. This repository contains upstream Sub2API work and b022hub fork changes. See [NOTICE](NOTICE) for attribution details.
 
 ---
 
