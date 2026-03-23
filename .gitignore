@@ -94,6 +94,8 @@ temp/
 /luckhub-*.png
 /ops-dark-*.png
 /theme-*-check.png
+/tools/loadtest_hey.sh
+/tools/loadtest_k6.js
 
 # ===================
 # 构建产物
