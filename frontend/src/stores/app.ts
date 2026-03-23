@@ -14,6 +14,8 @@ import {
 import { getPublicSettings as fetchPublicSettingsAPI } from '@/api/auth'
 import { sanitizeProjectExternalUrl } from '@/utils/projectLinks'
 
+const injectedConfigElementId = '__APP_CONFIG__'
+
 export const useAppStore = defineStore('app', () => {
   type AppTheme = 'light' | 'dark'
 
@@ -72,7 +74,51 @@ export const useAppStore = defineStore('app', () => {
   function normalizePublicSettings(config: PublicSettings): PublicSettings {
     return {
       ...config,
+      registration_user_limit: Number.isFinite(config.registration_user_limit)
+        ? config.registration_user_limit
+        : 0,
       doc_url: sanitizeProjectExternalUrl(config.doc_url)
+    }
+  }
+
+  function decodeBase64UTF8(encoded: string): string {
+    const binary = window.atob(encoded)
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+    return new TextDecoder().decode(bytes)
+  }
+
+  function readInjectedPublicSettings(): PublicSettings | null {
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    if (window.__APP_CONFIG__) {
+      return window.__APP_CONFIG__
+    }
+
+    if (typeof document === 'undefined') {
+      return null
+    }
+
+    const element = document.getElementById(injectedConfigElementId)
+    if (!element) {
+      return null
+    }
+
+    const raw = element.textContent?.trim()
+    if (!raw) {
+      return null
+    }
+
+    try {
+      const encoding = element.getAttribute('data-encoding')?.toLowerCase()
+      const json = encoding === 'base64' ? decodeBase64UTF8(raw) : raw
+      const parsed = JSON.parse(json) as PublicSettings
+      window.__APP_CONFIG__ = parsed
+      return parsed
+    } catch (error) {
+      console.warn('Failed to parse injected public settings:', error)
+      return null
     }
   }
 
@@ -369,8 +415,9 @@ export const useAppStore = defineStore('app', () => {
    */
   async function fetchPublicSettings(force = false): Promise<PublicSettings | null> {
     // Check for injected config from server (eliminates flash)
-    if (!publicSettingsLoaded.value && !force && window.__APP_CONFIG__) {
-      const normalizedConfig = normalizePublicSettings(window.__APP_CONFIG__)
+    const injectedConfig = !force ? readInjectedPublicSettings() : null
+    if (!publicSettingsLoaded.value && injectedConfig) {
+      const normalizedConfig = normalizePublicSettings(injectedConfig)
       applySettings(normalizedConfig)
       return normalizedConfig
     }
@@ -387,6 +434,9 @@ export const useAppStore = defineStore('app', () => {
         promo_code_enabled: true,
         password_reset_enabled: false,
         invitation_code_enabled: false,
+        registration_user_limit: 0,
+        oauth_registration_enabled: false,
+        oauth_invitation_code_enabled: false,
         turnstile_enabled: false,
         turnstile_site_key: '',
         site_name: siteName.value,
@@ -442,8 +492,9 @@ export const useAppStore = defineStore('app', () => {
    * @returns true if config was found and applied, false otherwise
    */
   function initFromInjectedConfig(): boolean {
-    if (window.__APP_CONFIG__) {
-      applySettings(normalizePublicSettings(window.__APP_CONFIG__))
+    const injectedConfig = readInjectedPublicSettings()
+    if (injectedConfig) {
+      applySettings(normalizePublicSettings(injectedConfig))
       return true
     }
     return false

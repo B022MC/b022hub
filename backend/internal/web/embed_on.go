@@ -6,10 +6,12 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"io/fs"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -94,7 +96,16 @@ func (s *FrontendServer) Middleware() gin.HandlerFunc {
 		}
 
 		// For index.html or SPA routes, serve with injected settings
-		if cleanPath == "index.html" || !s.fileExists(cleanPath) {
+		if cleanPath == "index.html" {
+			s.serveIndexHTML(c)
+			return
+		}
+		if !s.fileExists(cleanPath) {
+			if isAssetLikePath(cleanPath) {
+				c.String(http.StatusNotFound, "Not Found")
+				c.Abort()
+				return
+			}
 			s.serveIndexHTML(c)
 			return
 		}
@@ -174,13 +185,16 @@ func (s *FrontendServer) serveIndexHTML(c *gin.Context) {
 }
 
 func (s *FrontendServer) injectSettings(settingsJSON []byte) []byte {
-	// Create the script tag to inject with nonce placeholder
-	// The placeholder will be replaced with actual nonce at request time
-	script := []byte(`<script nonce="` + NonceHTMLPlaceholder + `">window.__APP_CONFIG__=` + string(settingsJSON) + `;</script>`)
+	// Inject config as non-executable base64 JSON to avoid CSP inline-script violations.
+	template := []byte(
+		`<template id="__APP_CONFIG__" data-encoding="base64">` +
+			base64.StdEncoding.EncodeToString(settingsJSON) +
+			`</template>`,
+	)
 
 	// Inject before </head>
 	headClose := []byte("</head>")
-	result := bytes.Replace(s.baseHTML, headClose, append(script, headClose...), 1)
+	result := bytes.Replace(s.baseHTML, headClose, append(template, headClose...), 1)
 
 	// Replace <title> with custom site name so the browser tab shows it immediately
 	result = injectSiteTitle(result, settingsJSON)
@@ -246,9 +260,18 @@ func ServeEmbeddedFrontend() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		if isAssetLikePath(cleanPath) {
+			c.String(http.StatusNotFound, "Not Found")
+			c.Abort()
+			return
+		}
 
 		serveIndexHTML(c, distFS)
 	}
+}
+
+func isAssetLikePath(cleanPath string) bool {
+	return path.Ext(path.Base(cleanPath)) != ""
 }
 
 func shouldBypassEmbeddedFrontend(path string) bool {

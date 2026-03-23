@@ -858,6 +858,12 @@ rate_limit:
   # 上游返回 529（过载）时的冷却时间（分钟）
   overload_cooldown_minutes: 10
 
+  # Automatically soft-delete account-level rate-limited accounts on the
+  # background cleanup sweep. This only applies to accounts whose
+  # rate_limit_reset_at is still in the future.
+  # 是否在后台清理任务中自动软删除账号级受限账号（仅针对 rate_limit_reset_at 仍在未来的账号）
+  auto_delete_rate_limited_accounts: false
+
 # =============================================================================
 # Pricing Data Source (Optional)
 # 定价数据源（可选）

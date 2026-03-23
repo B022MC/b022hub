@@ -39,7 +39,7 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		cfg,
 		nil,
 	)
-	accountExpirySvc := service.NewAccountExpiryService(nil, time.Second)
+	accountExpirySvc := service.NewAccountExpiryService(nil, time.Second, false)
 	subscriptionExpirySvc := service.NewSubscriptionExpiryService(nil, time.Second)
 	pricingSvc := service.NewPricingService(cfg, nil)
 	emailQueueSvc := service.NewEmailQueueService(nil, 1)

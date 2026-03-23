@@ -7,21 +7,37 @@ import (
 	"time"
 )
 
-// AccountExpiryService periodically pauses expired accounts when auto-pause is enabled.
-type AccountExpiryService struct {
-	accountRepo AccountRepository
-	interval    time.Duration
-	stopCh      chan struct{}
-	stopOnce    sync.Once
-	wg          sync.WaitGroup
+type rateLimitedAccountAutoDeleteRepository interface {
+	AutoDeleteRateLimitedAccounts(ctx context.Context, now time.Time) (int64, error)
 }
 
-func NewAccountExpiryService(accountRepo AccountRepository, interval time.Duration) *AccountExpiryService {
-	return &AccountExpiryService{
-		accountRepo: accountRepo,
-		interval:    interval,
-		stopCh:      make(chan struct{}),
+type accountExpiryRepository interface {
+	AutoPauseExpiredAccounts(ctx context.Context, now time.Time) (int64, error)
+}
+
+// AccountExpiryService periodically pauses expired accounts and can optionally
+// delete account-level rate-limited accounts.
+type AccountExpiryService struct {
+	accountRepo           accountExpiryRepository
+	rateLimitedDeleteRepo rateLimitedAccountAutoDeleteRepository
+	autoDeleteRateLimited bool
+	interval              time.Duration
+	stopCh                chan struct{}
+	stopOnce              sync.Once
+	wg                    sync.WaitGroup
+}
+
+func NewAccountExpiryService(accountRepo accountExpiryRepository, interval time.Duration, autoDeleteRateLimited bool) *AccountExpiryService {
+	svc := &AccountExpiryService{
+		accountRepo:           accountRepo,
+		autoDeleteRateLimited: autoDeleteRateLimited,
+		interval:              interval,
+		stopCh:                make(chan struct{}),
 	}
+	if deleteRepo, ok := accountRepo.(rateLimitedAccountAutoDeleteRepository); ok {
+		svc.rateLimitedDeleteRepo = deleteRepo
+	}
+	return svc
 }
 
 func (s *AccountExpiryService) Start() {
@@ -60,12 +76,26 @@ func (s *AccountExpiryService) runOnce() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	updated, err := s.accountRepo.AutoPauseExpiredAccounts(ctx, time.Now())
+	now := time.Now()
+	updated, err := s.accountRepo.AutoPauseExpiredAccounts(ctx, now)
 	if err != nil {
 		log.Printf("[AccountExpiry] Auto pause expired accounts failed: %v", err)
 		return
 	}
 	if updated > 0 {
 		log.Printf("[AccountExpiry] Auto paused %d expired accounts", updated)
+	}
+
+	if !s.autoDeleteRateLimited || s.rateLimitedDeleteRepo == nil {
+		return
+	}
+
+	deleted, err := s.rateLimitedDeleteRepo.AutoDeleteRateLimitedAccounts(ctx, now)
+	if err != nil {
+		log.Printf("[AccountExpiry] Auto delete rate-limited accounts failed: %v", err)
+		return
+	}
+	if deleted > 0 {
+		log.Printf("[AccountExpiry] Auto deleted %d rate-limited accounts", deleted)
 	}
 }

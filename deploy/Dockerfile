@@ -28,7 +28,9 @@ RUN pnpm install --frozen-lockfile
 
 # Copy frontend source and build
 COPY frontend/ ./
-RUN pnpm run build
+# Typecheck already runs in CI/local verification. Keep Docker builds lean enough
+# for low-memory servers by running the production bundle step directly.
+RUN NODE_OPTIONS=--max-old-space-size=768 pnpm exec vite build
 
 # -----------------------------------------------------------------------------
 # Stage 2: Backend Builder

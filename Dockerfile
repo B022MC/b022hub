@@ -29,7 +29,9 @@ RUN pnpm install --frozen-lockfile
 
 # Copy frontend source and build
 COPY frontend/ ./
-RUN pnpm run build
+# Typecheck already runs in CI/local verification. Keep Docker builds lean enough
+# for low-memory servers by running the production bundle step directly.
+RUN NODE_OPTIONS=--max-old-space-size=768 pnpm exec vite build
 
 # -----------------------------------------------------------------------------
 # Stage 2: Backend Builder
@@ -58,8 +60,9 @@ RUN go mod download
 # Copy backend source first
 COPY backend/ ./
 
-# Copy frontend dist from previous stage (must be after backend copy to avoid being overwritten)
-COPY --from=frontend-builder /app/backend/internal/web/dist ./internal/web/dist
+# Reuse the checked-in frontend dist to keep server builds lightweight.
+# When frontend source changes, refresh backend/internal/web/dist before release.
+COPY backend/internal/web/dist ./internal/web/dist
 
 # Build the binary (BuildType=release for CI builds, embed frontend)
 # Version precedence: build arg VERSION > cmd/server/VERSION

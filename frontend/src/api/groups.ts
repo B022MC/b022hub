@@ -6,6 +6,16 @@
 import { apiClient } from './client'
 import type { Group } from '@/types'
 
+export interface AvailableModelsGroup {
+  group: Group
+  models: string[]
+  model_count: number
+}
+
+export interface AvailableModelsResponse {
+  groups: AvailableModelsGroup[]
+}
+
 /**
  * Get available groups that the current user can bind to API keys
  * This returns groups based on user's permissions:
@@ -27,9 +37,18 @@ export async function getUserGroupRates(): Promise<Record<number, number>> {
   return data || {}
 }
 
+/**
+ * Get available models for all groups accessible to the current user
+ */
+export async function getModels(): Promise<AvailableModelsResponse> {
+  const { data } = await apiClient.get<AvailableModelsResponse>('/groups/models')
+  return data
+}
+
 export const userGroupsAPI = {
   getAvailable,
-  getUserGroupRates
+  getUserGroupRates,
+  getModels
 }
 
 export default userGroupsAPI

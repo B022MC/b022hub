@@ -851,7 +851,7 @@ onUnmounted(() => {
   animation: shimmer-kv 1.8s ease-in-out infinite;
   border-radius: 8px;
 }
-:global(.dark) .skeleton {
+html.dark .skeleton {
   background: linear-gradient(90deg, #334155 25%, #1e293b 50%, #334155 75%);
   background-size: 200% 100%;
 }
@@ -890,7 +890,7 @@ onUnmounted(() => {
   backdrop-filter: blur(18px);
 }
 
-:global(.dark) .key-usage-shell__header {
+html.dark .key-usage-shell__header {
   border-bottom-color: rgba(227, 224, 211, 0.08);
   background: rgba(20, 18, 16, 0.72);
 }
@@ -901,7 +901,7 @@ onUnmounted(() => {
   box-shadow: 0 12px 32px rgba(89, 62, 41, 0.12);
 }
 
-:global(.dark) .key-usage-shell__logo {
+html.dark .key-usage-shell__logo {
   border-color: rgba(227, 224, 211, 0.1);
   background: rgba(18, 16, 14, 0.84);
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
@@ -911,7 +911,7 @@ onUnmounted(() => {
   color: #2b2118;
 }
 
-:global(.dark) .key-usage-shell__brand {
+html.dark .key-usage-shell__brand {
   color: #f8f3e7;
 }
 
@@ -928,13 +928,13 @@ onUnmounted(() => {
   background: rgba(255, 247, 237, 0.92);
 }
 
-:global(.dark) .key-usage-shell__icon-button {
+html.dark .key-usage-shell__icon-button {
   border-color: rgba(227, 224, 211, 0.1);
   background: rgba(20, 18, 16, 0.76);
   color: #c9c3b4;
 }
 
-:global(.dark) .key-usage-shell__icon-button:hover {
+html.dark .key-usage-shell__icon-button:hover {
   color: #f8f3e7;
   border-color: rgba(212, 162, 127, 0.2);
   background: rgba(29, 25, 23, 0.94);
@@ -944,7 +944,7 @@ onUnmounted(() => {
   border-top: 1px solid rgba(125, 94, 71, 0.1);
 }
 
-:global(.dark) .key-usage-shell__footer {
+html.dark .key-usage-shell__footer {
   border-top-color: rgba(227, 224, 211, 0.08);
 }
 
@@ -957,12 +957,12 @@ onUnmounted(() => {
   color: #2b2118;
 }
 
-:global(.dark) .key-usage-shell__footer-text,
-:global(.dark) .key-usage-shell__footer-link {
+html.dark .key-usage-shell__footer-text,
+html.dark .key-usage-shell__footer-link {
   color: #9d998f;
 }
 
-:global(.dark) .key-usage-shell__footer-link:hover {
+html.dark .key-usage-shell__footer-link:hover {
   color: #f8f3e7;
 }
 </style>

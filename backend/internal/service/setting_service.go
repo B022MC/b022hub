@@ -84,10 +84,15 @@ type DefaultSubscriptionGroupReader interface {
 	GetByID(ctx context.Context, id int64) (*Group, error)
 }
 
+type RegistrationUserCountReader interface {
+	CountUsers(ctx context.Context) (int64, error)
+}
+
 // SettingService 系统设置服务
 type SettingService struct {
 	settingRepo           SettingRepository
 	defaultSubGroupReader DefaultSubscriptionGroupReader
+	userCountReader       RegistrationUserCountReader
 	cfg                   *config.Config
 	onUpdate              func() // Callback when settings are updated (for cache invalidation)
 	onS3Update            func() // Callback when Sora S3 settings are updated
@@ -105,6 +110,11 @@ func NewSettingService(settingRepo SettingRepository, cfg *config.Config) *Setti
 // SetDefaultSubscriptionGroupReader injects an optional group reader for default subscription validation.
 func (s *SettingService) SetDefaultSubscriptionGroupReader(reader DefaultSubscriptionGroupReader) {
 	s.defaultSubGroupReader = reader
+}
+
+// SetRegistrationUserCountReader injects an optional reader used to enforce registration user caps.
+func (s *SettingService) SetRegistrationUserCountReader(reader RegistrationUserCountReader) {
+	s.userCountReader = reader
 }
 
 // GetAllSettings 获取所有系统设置
@@ -135,6 +145,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyPromoCodeEnabled,
 		SettingKeyPasswordResetEnabled,
 		SettingKeyInvitationCodeEnabled,
+		SettingKeyRegistrationUserLimit,
+		SettingKeyOAuthRegistrationEnabled,
+		SettingKeyOAuthInvitationCodeEnabled,
 		SettingKeyTotpEnabled,
 		SettingKeyTurnstileEnabled,
 		SettingKeyTurnstileSiteKey,
@@ -174,14 +187,23 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 	registrationEmailSuffixWhitelist := ParseRegistrationEmailSuffixWhitelist(
 		settings[SettingKeyRegistrationEmailSuffixWhitelist],
 	)
+	registrationEnabled := settings[SettingKeyRegistrationEnabled] == "true"
+	oauthRegistrationEnabled := s.getOAuthRegistrationEnabledFromMap(settings)
+	if s.isRegistrationUserLimitReached(ctx, s.getRegistrationUserLimitFromMap(settings)) {
+		registrationEnabled = false
+		oauthRegistrationEnabled = false
+	}
 
 	return &PublicSettings{
-		RegistrationEnabled:              settings[SettingKeyRegistrationEnabled] == "true",
+		RegistrationEnabled:              registrationEnabled,
 		EmailVerifyEnabled:               emailVerifyEnabled,
 		RegistrationEmailSuffixWhitelist: registrationEmailSuffixWhitelist,
 		PromoCodeEnabled:                 settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用
 		PasswordResetEnabled:             passwordResetEnabled,
 		InvitationCodeEnabled:            settings[SettingKeyInvitationCodeEnabled] == "true",
+		RegistrationUserLimit:            s.getRegistrationUserLimitFromMap(settings),
+		OAuthRegistrationEnabled:         oauthRegistrationEnabled,
+		OAuthInvitationCodeEnabled:       s.getOAuthInvitationCodeEnabledFromMap(settings),
 		TotpEnabled:                      settings[SettingKeyTotpEnabled] == "true",
 		TurnstileEnabled:                 settings[SettingKeyTurnstileEnabled] == "true",
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
@@ -236,6 +258,9 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		PromoCodeEnabled                 bool            `json:"promo_code_enabled"`
 		PasswordResetEnabled             bool            `json:"password_reset_enabled"`
 		InvitationCodeEnabled            bool            `json:"invitation_code_enabled"`
+		RegistrationUserLimit            int             `json:"registration_user_limit"`
+		OAuthRegistrationEnabled         bool            `json:"oauth_registration_enabled"`
+		OAuthInvitationCodeEnabled       bool            `json:"oauth_invitation_code_enabled"`
 		TotpEnabled                      bool            `json:"totp_enabled"`
 		TurnstileEnabled                 bool            `json:"turnstile_enabled"`
 		TurnstileSiteKey                 string          `json:"turnstile_site_key,omitempty"`
@@ -263,6 +288,9 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		PromoCodeEnabled:                 settings.PromoCodeEnabled,
 		PasswordResetEnabled:             settings.PasswordResetEnabled,
 		InvitationCodeEnabled:            settings.InvitationCodeEnabled,
+		RegistrationUserLimit:            settings.RegistrationUserLimit,
+		OAuthRegistrationEnabled:         settings.OAuthRegistrationEnabled,
+		OAuthInvitationCodeEnabled:       settings.OAuthInvitationCodeEnabled,
 		TotpEnabled:                      settings.TotpEnabled,
 		TurnstileEnabled:                 settings.TurnstileEnabled,
 		TurnstileSiteKey:                 settings.TurnstileSiteKey,
@@ -421,6 +449,12 @@ func (s *SettingService) UpdateSettings(ctx context.Context, settings *SystemSet
 	updates[SettingKeyPasswordResetEnabled] = strconv.FormatBool(settings.PasswordResetEnabled)
 	updates[SettingKeyFrontendURL] = settings.FrontendURL
 	updates[SettingKeyInvitationCodeEnabled] = strconv.FormatBool(settings.InvitationCodeEnabled)
+	if settings.RegistrationUserLimit < 0 {
+		settings.RegistrationUserLimit = 0
+	}
+	updates[SettingKeyRegistrationUserLimit] = strconv.Itoa(settings.RegistrationUserLimit)
+	updates[SettingKeyOAuthRegistrationEnabled] = strconv.FormatBool(settings.OAuthRegistrationEnabled)
+	updates[SettingKeyOAuthInvitationCodeEnabled] = strconv.FormatBool(settings.OAuthInvitationCodeEnabled)
 	updates[SettingKeyTotpEnabled] = strconv.FormatBool(settings.TotpEnabled)
 
 	// 邮件服务设置（只有非空才更新密码）
@@ -574,7 +608,26 @@ func (s *SettingService) IsRegistrationEnabled(ctx context.Context) bool {
 		// 安全默认：如果设置不存在或查询出错，默认关闭注册
 		return false
 	}
-	return value == "true"
+	return value == "true" && !s.isRegistrationUserLimitReached(ctx, s.GetRegistrationUserLimit(ctx))
+}
+
+// GetRegistrationUserLimit returns the self-service registration user cap. 0 disables the cap.
+func (s *SettingService) GetRegistrationUserLimit(ctx context.Context) int {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyRegistrationUserLimit)
+	if err != nil {
+		return 0
+	}
+	return parseSettingInt(value, 0)
+}
+
+// IsOAuthRegistrationEnabled checks whether OAuth first-login can create a local user.
+// When the dedicated setting is absent, it falls back to the legacy registration switch.
+func (s *SettingService) IsOAuthRegistrationEnabled(ctx context.Context) bool {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyOAuthRegistrationEnabled)
+	if err == nil {
+		return value == "true" && !s.isRegistrationUserLimitReached(ctx, s.GetRegistrationUserLimit(ctx))
+	}
+	return s.IsRegistrationEnabled(ctx)
 }
 
 // IsBackendModeEnabled checks if backend mode is enabled
@@ -657,6 +710,16 @@ func (s *SettingService) IsInvitationCodeEnabled(ctx context.Context) bool {
 		return false // 默认关闭
 	}
 	return value == "true"
+}
+
+// IsOAuthInvitationCodeEnabled checks whether OAuth first-login registration requires an invitation code.
+// When the dedicated setting is absent, it falls back to the legacy invitation-code switch.
+func (s *SettingService) IsOAuthInvitationCodeEnabled(ctx context.Context) bool {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyOAuthInvitationCodeEnabled)
+	if err == nil {
+		return value == "true"
+	}
+	return s.IsInvitationCodeEnabled(ctx)
 }
 
 // IsPasswordResetEnabled 检查是否启用密码重置功能
@@ -748,6 +811,9 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyEmailVerifyEnabled:               "false",
 		SettingKeyRegistrationEmailSuffixWhitelist: "[]",
 		SettingKeyPromoCodeEnabled:                 "true", // 默认启用优惠码功能
+		SettingKeyRegistrationUserLimit:            "0",
+		SettingKeyOAuthRegistrationEnabled:         "true",
+		SettingKeyOAuthInvitationCodeEnabled:       "false",
 		SettingKeySiteName:                         "b022hub",
 		SettingKeySiteLogo:                         "",
 		SettingKeyPurchaseSubscriptionEnabled:      "false",
@@ -801,6 +867,9 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		PasswordResetEnabled:             emailVerifyEnabled && settings[SettingKeyPasswordResetEnabled] == "true",
 		FrontendURL:                      settings[SettingKeyFrontendURL],
 		InvitationCodeEnabled:            settings[SettingKeyInvitationCodeEnabled] == "true",
+		RegistrationUserLimit:            s.getRegistrationUserLimitFromMap(settings),
+		OAuthRegistrationEnabled:         s.getOAuthRegistrationEnabledFromMap(settings),
+		OAuthInvitationCodeEnabled:       s.getOAuthInvitationCodeEnabledFromMap(settings),
 		TotpEnabled:                      settings[SettingKeyTotpEnabled] == "true",
 		SMTPHost:                         settings[SettingKeySMTPHost],
 		SMTPUsername:                     settings[SettingKeySMTPUsername],
@@ -939,6 +1008,36 @@ func isFalseSettingValue(value string) bool {
 	}
 }
 
+func (s *SettingService) getOAuthRegistrationEnabledFromMap(settings map[string]string) bool {
+	if raw, ok := settings[SettingKeyOAuthRegistrationEnabled]; ok {
+		return raw == "true"
+	}
+	return settings[SettingKeyRegistrationEnabled] == "true"
+}
+
+func (s *SettingService) getRegistrationUserLimitFromMap(settings map[string]string) int {
+	return parseSettingInt(settings[SettingKeyRegistrationUserLimit], 0)
+}
+
+func (s *SettingService) getOAuthInvitationCodeEnabledFromMap(settings map[string]string) bool {
+	if raw, ok := settings[SettingKeyOAuthInvitationCodeEnabled]; ok {
+		return raw == "true"
+	}
+	return settings[SettingKeyInvitationCodeEnabled] == "true"
+}
+
+func (s *SettingService) isRegistrationUserLimitReached(ctx context.Context, limit int) bool {
+	if limit <= 0 || s.userCountReader == nil {
+		return false
+	}
+	count, err := s.userCountReader.CountUsers(ctx)
+	if err != nil {
+		slog.Warn("failed to count users for registration limit", "error", err)
+		return false
+	}
+	return count >= int64(limit)
+}
+
 func parseSettingFloat64(raw string, fallback float64) float64 {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -946,6 +1045,18 @@ func parseSettingFloat64(raw string, fallback float64) float64 {
 	}
 	value, err := strconv.ParseFloat(raw, 64)
 	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
+}
+
+func parseSettingInt(raw string, fallback int) int {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value < 0 {
 		return fallback
 	}
 	return value

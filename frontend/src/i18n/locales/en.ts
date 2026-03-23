@@ -23,7 +23,7 @@ export default {
     heroEyebrow: 'Built for CLI workflows, runtime routing, and team-ready access',
     heroSubtitle: 'A unified AI runtime hub for Claude, Codex, and Gemini',
     heroPrefix: 'Point your AI workflow at',
-    heroDescription: 'b022hub puts Claude Code, OpenAI Codex, and Gemini CLI behind one runtime entry. You keep a single API domain, one key strategy, and one routing layer, while landing on an interface that feels close to Luck Hub.',
+    heroDescription: 'b022hub puts Claude Code, OpenAI Codex, and Gemini CLI behind one runtime entry. You keep a single API domain, one key strategy, and one routing layer for a more unified daily integration and routing workflow.',
     heroTags: {
       gateway: 'Unified gateway /v1',
       routing: 'Multi-runtime routing',
@@ -250,7 +250,8 @@ export default {
     },
     footer: {
       allRightsReserved: 'All rights reserved.',
-      forkNotice: '{siteName} is a customized secondary development based on the original Sub2API project.'
+      noticeLabel: 'Notice',
+      forkNotice: '{siteName} is built on sub2api.'
     }
   },
 
@@ -497,7 +498,33 @@ export default {
     mySubscriptions: 'My Subscriptions',
     buySubscription: 'Recharge / Subscription',
     docs: 'Docs',
+    models: 'Models',
     sora: 'Sora Studio'
+  },
+
+  models: {
+    title: 'Available Models',
+    description: 'Browse the models exposed by the groups currently available to your account',
+    totalGroups: 'Accessible Groups',
+    totalModels: 'Available Models',
+    selectedModels: 'Current Filter',
+    groupsHint: 'Groups your account can bind or subscribe to',
+    uniqueModelsHint: 'Unique models after deduplication',
+    selectedGroupHint: 'Current group: {group}',
+    allGroupsHint: 'Across all accessible groups',
+    searchLabel: 'Search',
+    searchPlaceholder: 'Search by model or group name',
+    groupFilterLabel: 'Group Filter',
+    allGroups: 'All Groups',
+    catalogTitle: 'Model Catalog',
+    catalogDescription: 'This page shows the groups your account can access and the models each group can currently serve.',
+    resultsCount: '{count} models',
+    groupCount: 'Available in {count} groups',
+    copyModel: 'Copy model name',
+    copySuccess: 'Model name copied',
+    loadFailed: 'Failed to load available models',
+    emptyTitle: 'No available models',
+    emptyDescription: 'There are no models to display right now. Check group access, subscriptions, or upstream account configuration.'
   },
 
   // Auth
@@ -4216,6 +4243,12 @@ export default {
         promoCodeHint: 'Allow users to use promo codes during registration',
         invitationCode: 'Invitation Code Registration',
         invitationCodeHint: 'When enabled, users must enter a valid invitation code to register',
+        userLimit: 'Registration User Cap',
+        userLimitHint: 'Once total users reach this number, standard registration and first-time OAuth signup are both closed. Use 0 for no limit',
+        oauthRegistration: 'OAuth First Login Signup',
+        oauthRegistrationHint: 'Allow first-time OAuth logins such as LinuxDo to create a local account. When disabled, only existing accounts can sign in with OAuth',
+        oauthInvitationCode: 'OAuth Invitation Code',
+        oauthInvitationCodeHint: 'When enabled, first-time OAuth signups must provide a valid invitation code. This is independent from regular registration',
         passwordReset: 'Password Reset',
         passwordResetHint: 'Allow users to reset their password via email',
         frontendUrl: 'Frontend URL',

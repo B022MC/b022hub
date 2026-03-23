@@ -555,6 +555,54 @@ func (s *AccountRepoSuite) TestClearRateLimit() {
 	s.Require().Nil(got.OverloadUntil)
 }
 
+func (s *AccountRepoSuite) TestAutoDeleteRateLimitedAccounts() {
+	limitedAt := time.Now().Add(-1 * time.Minute)
+	limitedResetAt := time.Now().Add(30 * time.Minute)
+	expiredAt := time.Now().Add(-2 * time.Hour)
+	expiredResetAt := time.Now().Add(-1 * time.Minute)
+	limited := mustCreateAccount(s.T(), s.client, &service.Account{
+		Name:             "acc-rate-limited-delete",
+		Platform:         service.PlatformOpenAI,
+		Type:             service.AccountTypeOAuth,
+		RateLimitedAt:    &limitedAt,
+		RateLimitResetAt: &limitedResetAt,
+	})
+	expired := mustCreateAccount(s.T(), s.client, &service.Account{
+		Name:             "acc-rate-limit-expired",
+		Platform:         service.PlatformOpenAI,
+		Type:             service.AccountTypeOAuth,
+		RateLimitedAt:    &expiredAt,
+		RateLimitResetAt: &expiredResetAt,
+	})
+	group := mustCreateGroup(s.T(), s.client, &service.Group{Name: "g-rl-delete"})
+	_, err := s.client.AccountGroup.Create().SetAccountID(limited.ID).SetGroupID(group.ID).Save(s.ctx)
+	s.Require().NoError(err)
+	_, err = s.repo.sql.ExecContext(s.ctx, "TRUNCATE scheduler_outbox")
+	s.Require().NoError(err)
+
+	deleted, err := s.repo.AutoDeleteRateLimitedAccounts(s.ctx, time.Now())
+	s.Require().NoError(err)
+	s.Require().EqualValues(1, deleted)
+
+	_, err = s.repo.GetByID(s.ctx, limited.ID)
+	s.Require().ErrorIs(err, service.ErrAccountNotFound)
+	stillThere, err := s.repo.GetByID(s.ctx, expired.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(expired.ID, stillThere.ID)
+
+	var deletedCount int
+	s.Require().NoError(scanSingleRow(s.ctx, s.repo.sql, "SELECT COUNT(*) FROM accounts WHERE id = $1 AND deleted_at IS NOT NULL", []any{limited.ID}, &deletedCount))
+	s.Require().Equal(1, deletedCount)
+
+	var bindingCount int
+	s.Require().NoError(scanSingleRow(s.ctx, s.repo.sql, "SELECT COUNT(*) FROM account_groups WHERE account_id = $1", []any{limited.ID}, &bindingCount))
+	s.Require().Zero(bindingCount)
+
+	var outboxCount int
+	s.Require().NoError(scanSingleRow(s.ctx, s.repo.sql, "SELECT COUNT(*) FROM scheduler_outbox WHERE event_type = $1", []any{service.SchedulerOutboxEventFullRebuild}, &outboxCount))
+	s.Require().Equal(1, outboxCount)
+}
+
 func (s *AccountRepoSuite) TestTempUnschedulableFieldsLoadedByGetByIDAndGetByIDs() {
 	acc1 := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-temp-1"})
 	acc2 := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-temp-2"})

@@ -160,7 +160,7 @@ func (m *mockSettingsProvider) GetPublicSettingsForInjection(ctx context.Context
 }
 
 func TestFrontendServer_InjectSettings(t *testing.T) {
-	t.Run("injects_settings_with_nonce_placeholder", func(t *testing.T) {
+	t.Run("injects_settings_as_base64_template", func(t *testing.T) {
 		provider := &mockSettingsProvider{
 			settings: map[string]string{"key": "value"},
 		}
@@ -171,10 +171,9 @@ func TestFrontendServer_InjectSettings(t *testing.T) {
 		settingsJSON := []byte(`{"test":"data"}`)
 		result := server.injectSettings(settingsJSON)
 
-		// Should contain the script with nonce placeholder
-		assert.Contains(t, string(result), `<script nonce="__CSP_NONCE_VALUE__">`)
-		assert.Contains(t, string(result), `window.__APP_CONFIG__={"test":"data"};`)
-		assert.Contains(t, string(result), `</script></head>`)
+		assert.Contains(t, string(result), `<template id="__APP_CONFIG__" data-encoding="base64">`)
+		assert.Contains(t, string(result), `eyJ0ZXN0IjoiZGF0YSJ9`)
+		assert.Contains(t, string(result), `</template></head>`)
 	})
 
 	t.Run("injects_before_head_close", func(t *testing.T) {
@@ -188,11 +187,11 @@ func TestFrontendServer_InjectSettings(t *testing.T) {
 		settingsJSON := []byte(`{}`)
 		result := server.injectSettings(settingsJSON)
 
-		// Script should be injected before </head>
+		// Template should be injected before </head>
 		headCloseIndex := bytes.Index(result, []byte("</head>"))
-		scriptIndex := bytes.Index(result, []byte(`<script nonce="`))
+		scriptIndex := bytes.Index(result, []byte(`<template id="__APP_CONFIG__"`))
 
-		assert.True(t, scriptIndex < headCloseIndex, "script should be before </head>")
+		assert.True(t, scriptIndex < headCloseIndex, "template should be before </head>")
 	})
 
 	t.Run("handles_complex_settings", func(t *testing.T) {
@@ -210,12 +209,12 @@ func TestFrontendServer_InjectSettings(t *testing.T) {
 		settingsJSON := []byte(`{"nested":{"array":[1,2,3]},"special":"<>&"}`)
 		result := server.injectSettings(settingsJSON)
 
-		assert.Contains(t, string(result), `window.__APP_CONFIG__={"nested":{"array":[1,2,3]},"special":"<>&"};`)
+		assert.Contains(t, string(result), `eyJuZXN0ZWQiOnsiYXJyYXkiOlsxLDIsM119LCJzcGVjaWFsIjoiPD4mIn0=`)
 	})
 }
 
 func TestFrontendServer_ServeIndexHTML(t *testing.T) {
-	t.Run("serves_html_with_nonce", func(t *testing.T) {
+	t.Run("serves_html_with_injected_template_and_no_nonce_placeholder", func(t *testing.T) {
 		provider := &mockSettingsProvider{
 			settings: map[string]string{"test": "value"},
 		}
@@ -238,9 +237,8 @@ func TestFrontendServer_ServeIndexHTML(t *testing.T) {
 		assert.Contains(t, w.Header().Get("Content-Type"), "text/html")
 
 		body := w.Body.String()
-		// Nonce placeholder should be replaced
 		assert.NotContains(t, body, NonceHTMLPlaceholder)
-		assert.Contains(t, body, `nonce="`+testNonce+`"`)
+		assert.Contains(t, body, `<template id="__APP_CONFIG__" data-encoding="base64">`)
 	})
 
 	t.Run("caches_html_content", func(t *testing.T) {
@@ -270,8 +268,7 @@ func TestFrontendServer_ServeIndexHTML(t *testing.T) {
 		// Settings provider should not be called again
 		assert.Equal(t, 1, provider.called)
 
-		// But nonce should be different
-		assert.Contains(t, w2.Body.String(), `nonce="nonce2"`)
+		assert.Contains(t, w2.Body.String(), `<template id="__APP_CONFIG__" data-encoding="base64">`)
 	})
 
 	t.Run("sets_etag_header", func(t *testing.T) {
@@ -534,11 +531,29 @@ func TestFrontendServer_Middleware(t *testing.T) {
 
 		// Request for existing static file
 		w := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/logo.png", nil)
+		req := httptest.NewRequest(http.MethodGet, "/b022-logo.svg", nil)
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Contains(t, w.Header().Get("Content-Type"), "image/png")
+		assert.Contains(t, w.Header().Get("Content-Type"), "image/svg+xml")
+	})
+
+	t.Run("returns_404_for_missing_asset_path", func(t *testing.T) {
+		provider := &mockSettingsProvider{
+			settings: map[string]string{"test": "value"},
+		}
+
+		server, err := NewFrontendServer(provider)
+		require.NoError(t, err)
+
+		router := gin.New()
+		router.Use(server.Middleware())
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/logo.png", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 }
 
@@ -588,11 +603,24 @@ func TestServeEmbeddedFrontend(t *testing.T) {
 		router.Use(middleware)
 
 		w := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/logo.png", nil)
+		req := httptest.NewRequest(http.MethodGet, "/b022-logo.svg", nil)
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Contains(t, w.Header().Get("Content-Type"), "image/png")
+		assert.Contains(t, w.Header().Get("Content-Type"), "image/svg+xml")
+	})
+
+	t.Run("returns_404_for_missing_asset_path", func(t *testing.T) {
+		middleware := ServeEmbeddedFrontend()
+
+		router := gin.New()
+		router.Use(middleware)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/logo.png", nil)
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 
 	t.Run("serves_index_html_for_root", func(t *testing.T) {

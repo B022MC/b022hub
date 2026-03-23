@@ -82,6 +82,9 @@ const (
 	SettingKeyPasswordResetEnabled             = "password_reset_enabled"              // 是否启用忘记密码功能（需要先开启邮件验证）
 	SettingKeyFrontendURL                      = "frontend_url"                        // 前端基础URL，用于生成邮件中的重置密码链接
 	SettingKeyInvitationCodeEnabled            = "invitation_code_enabled"             // 是否启用邀请码注册
+	SettingKeyRegistrationUserLimit            = "registration_user_limit"             // 自助注册用户数上限（0 = 不限制）
+	SettingKeyOAuthRegistrationEnabled         = "oauth_registration_enabled"          // 是否允许 OAuth 首次登录创建本地账号
+	SettingKeyOAuthInvitationCodeEnabled       = "oauth_invitation_code_enabled"       // OAuth 首次登录创建本地账号时是否要求邀请码
 
 	// 邮件服务设置
 	SettingKeySMTPHost     = "smtp_host"      // SMTP服务器地址

@@ -67,7 +67,7 @@ onUnmounted(() => {
   backdrop-filter: blur(18px);
 }
 
-:global(.dark) .table-scroll-container {
+html.dark .table-scroll-container {
   border-color: rgba(227, 224, 211, 0.08);
   background: rgba(20, 18, 16, 0.76);
   box-shadow: 0 22px 56px rgba(0, 0, 0, 0.28);
@@ -90,7 +90,7 @@ onUnmounted(() => {
   backdrop-filter: blur(14px);
 }
 
-:global(.dark) .table-scroll-container :deep(thead) {
+html.dark .table-scroll-container :deep(thead) {
   background: rgba(31, 27, 25, 0.9);
 }
 
@@ -108,11 +108,11 @@ onUnmounted(() => {
   border-color: rgba(125, 94, 71, 0.08);
 }
 
-:global(.dark) .table-scroll-container :deep(th) {
+html.dark .table-scroll-container :deep(th) {
   border-color: rgba(227, 224, 211, 0.08);
 }
 
-:global(.dark) .table-scroll-container :deep(td) {
+html.dark .table-scroll-container :deep(td) {
   border-color: rgba(227, 224, 211, 0.06);
 }
 

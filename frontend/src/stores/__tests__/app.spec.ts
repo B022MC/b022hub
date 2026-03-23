@@ -17,6 +17,7 @@ describe('useAppStore', () => {
     vi.useFakeTimers()
     // 清除 window.__APP_CONFIG__
     delete (window as any).__APP_CONFIG__
+    document.getElementById('__APP_CONFIG__')?.remove()
     localStorage.clear()
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -290,6 +291,27 @@ describe('useAppStore', () => {
   // --- 公开设置 ---
 
   describe('公开设置加载', () => {
+    it('从注入的 base64 模板初始化', () => {
+      const template = document.createElement('template')
+      template.id = '__APP_CONFIG__'
+      template.setAttribute('data-encoding', 'base64')
+      template.textContent = btoa(JSON.stringify({
+        site_name: 'TemplateSite',
+        site_logo: '/b022-logo.svg',
+        version: '2.0.0'
+      }))
+      document.head.appendChild(template)
+
+      const store = useAppStore()
+      const result = store.initFromInjectedConfig()
+
+      expect(result).toBe(true)
+      expect(store.siteName).toBe('TemplateSite')
+      expect(store.siteLogo).toBe('/b022-logo.svg')
+      expect(store.siteVersion).toBe('2.0.0')
+      expect(store.publicSettingsLoaded).toBe(true)
+    })
+
     it('从 window.__APP_CONFIG__ 初始化', () => {
       const windowAny = window as any
       windowAny.__APP_CONFIG__ = {
@@ -315,7 +337,7 @@ describe('useAppStore', () => {
       const windowAny = window as any
       windowAny.__APP_CONFIG__ = {
         site_name: 'TestSite',
-        doc_url: 'https://github.com/B022MC/b022hub'
+        doc_url: 'https://github.com/wei-shaw/sub2api'
       }
 
       const store = useAppStore()

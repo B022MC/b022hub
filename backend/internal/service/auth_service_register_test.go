@@ -154,6 +154,18 @@ func TestAuthService_Register_Disabled(t *testing.T) {
 	require.ErrorIs(t, err, ErrRegDisabled)
 }
 
+func TestAuthService_Register_DisabledWhenUserCapReached(t *testing.T) {
+	repo := &userRepoStub{}
+	service := newAuthService(repo, map[string]string{
+		SettingKeyRegistrationEnabled:   "true",
+		SettingKeyRegistrationUserLimit: "1",
+	}, nil)
+	service.settingService.SetRegistrationUserCountReader(&registrationUserCountReaderStub{count: 1})
+
+	_, _, err := service.Register(context.Background(), "user@test.com", "password")
+	require.ErrorIs(t, err, ErrRegDisabled)
+}
+
 func TestAuthService_Register_DisabledByDefault(t *testing.T) {
 	// 当 settings 为 nil（设置项不存在）时，注册应该默认关闭
 	repo := &userRepoStub{}

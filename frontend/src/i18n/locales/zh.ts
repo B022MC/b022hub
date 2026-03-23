@@ -23,7 +23,7 @@ export default {
     heroEyebrow: '为 CLI 工作流、多模型路由与团队接入打造',
     heroSubtitle: '统一承载 Claude、Codex、Gemini 的 AI Runtime Hub',
     heroPrefix: '把你的 AI 工作流接到',
-    heroDescription: 'b022hub 把 Claude Code、OpenAI Codex 和 Gemini CLI 放进同一个运行时入口。你可以复用一个 API 域名、一套密钥策略和一组路由能力，做出接近 Luck Hub 的沉浸式接入体验。',
+    heroDescription: 'b022hub 把 Claude Code、OpenAI Codex 和 Gemini CLI 放进同一个运行时入口。你可以复用一个 API 域名、一套密钥策略和一组路由能力，用更统一的方式承接日常接入与调度。',
     heroTags: {
       gateway: '统一网关 /v1',
       routing: '多运行时路由',
@@ -250,7 +250,8 @@ export default {
     },
     footer: {
       allRightsReserved: '保留所有权利。',
-      forkNotice: '{siteName} 基于原始 Sub2API 项目进行二次开发与界面定制。'
+      noticeLabel: '说明',
+      forkNotice: '{siteName} 基于 sub2api 二开。'
     }
   },
 
@@ -497,7 +498,33 @@ export default {
     mySubscriptions: '我的订阅',
     buySubscription: '充值/订阅',
     docs: '文档',
+    models: '可用模型',
     sora: 'Sora 创作'
+  },
+
+  models: {
+    title: '可用模型',
+    description: '查看当前可访问分组下可请求的模型列表',
+    totalGroups: '可访问分组',
+    totalModels: '可用模型',
+    selectedModels: '当前筛选',
+    groupsHint: '当前账号可绑定或已订阅的分组',
+    uniqueModelsHint: '去重后的模型目录',
+    selectedGroupHint: '当前分组：{group}',
+    allGroupsHint: '覆盖全部可访问分组',
+    searchLabel: '搜索',
+    searchPlaceholder: '搜索模型名或分组名',
+    groupFilterLabel: '分组筛选',
+    allGroups: '全部分组',
+    catalogTitle: '模型目录',
+    catalogDescription: '这里展示你当前账号有权限访问的分组，以及每个分组下可直接请求的模型。',
+    resultsCount: '{count} 个模型',
+    groupCount: '{count} 个分组可用',
+    copyModel: '复制模型名',
+    copySuccess: '模型名已复制',
+    loadFailed: '加载可用模型失败',
+    emptyTitle: '暂无可用模型',
+    emptyDescription: '当前没有可展示的模型，请检查分组订阅、分组绑定或上游账号配置。'
   },
 
   // Auth
@@ -4382,6 +4409,12 @@ export default {
         promoCodeHint: '允许用户在注册时使用优惠码',
         invitationCode: '邀请码注册',
         invitationCodeHint: '开启后，用户注册时需要填写有效的邀请码',
+        userLimit: '注册人数上限',
+        userLimitHint: '达到该用户总数后，普通注册和 OAuth 首次建号都会自动关闭。填 0 表示不限',
+        oauthRegistration: 'OAuth 首次建号',
+        oauthRegistrationHint: '允许 LinuxDo 等 OAuth 首次登录时自动创建本地账号；关闭后仅已有账号可通过 OAuth 登录',
+        oauthInvitationCode: 'OAuth 邀请码',
+        oauthInvitationCodeHint: '开启后，OAuth 首次登录创建本地账号时需要邀请码；可与普通注册设置独立',
         passwordReset: '忘记密码',
         passwordResetHint: '允许用户通过邮箱重置密码',
         frontendUrl: '前端地址',

@@ -139,8 +139,8 @@ func ProvideUsageCleanupService(repo UsageCleanupRepository, timingWheel *Timing
 }
 
 // ProvideAccountExpiryService creates and starts AccountExpiryService.
-func ProvideAccountExpiryService(accountRepo AccountRepository) *AccountExpiryService {
-	svc := NewAccountExpiryService(accountRepo, time.Minute)
+func ProvideAccountExpiryService(accountRepo AccountRepository, cfg *config.Config) *AccountExpiryService {
+	svc := NewAccountExpiryService(accountRepo, time.Minute, cfg.RateLimit.AutoDeleteRateLimitedAccounts)
 	svc.Start()
 	return svc
 }
@@ -399,9 +399,12 @@ func ProvideBackupService(
 }
 
 // ProvideSettingService wires SettingService with group reader for default subscription validation.
-func ProvideSettingService(settingRepo SettingRepository, groupRepo GroupRepository, cfg *config.Config) *SettingService {
+func ProvideSettingService(settingRepo SettingRepository, groupRepo GroupRepository, userRepo UserRepository, cfg *config.Config) *SettingService {
 	svc := NewSettingService(settingRepo, cfg)
 	svc.SetDefaultSubscriptionGroupReader(groupRepo)
+	if reader, ok := userRepo.(RegistrationUserCountReader); ok {
+		svc.SetRegistrationUserCountReader(reader)
+	}
 	return svc
 }
 

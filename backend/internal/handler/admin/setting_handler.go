@@ -82,6 +82,9 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		PasswordResetEnabled:                 settings.PasswordResetEnabled,
 		FrontendURL:                          settings.FrontendURL,
 		InvitationCodeEnabled:                settings.InvitationCodeEnabled,
+		RegistrationUserLimit:                settings.RegistrationUserLimit,
+		OAuthRegistrationEnabled:             settings.OAuthRegistrationEnabled,
+		OAuthInvitationCodeEnabled:           settings.OAuthInvitationCodeEnabled,
 		TotpEnabled:                          settings.TotpEnabled,
 		TotpEncryptionKeyConfigured:          h.settingService.IsTotpEncryptionKeyConfigured(),
 		SMTPHost:                             settings.SMTPHost,
@@ -145,6 +148,9 @@ type UpdateSettingsRequest struct {
 	PasswordResetEnabled             bool     `json:"password_reset_enabled"`
 	FrontendURL                      string   `json:"frontend_url"`
 	InvitationCodeEnabled            bool     `json:"invitation_code_enabled"`
+	RegistrationUserLimit            int      `json:"registration_user_limit"`
+	OAuthRegistrationEnabled         bool     `json:"oauth_registration_enabled"`
+	OAuthInvitationCodeEnabled       bool     `json:"oauth_invitation_code_enabled"`
 	TotpEnabled                      bool     `json:"totp_enabled"` // TOTP 双因素认证
 
 	// 邮件服务设置
@@ -238,6 +244,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	}
 	if req.DefaultBalance < 0 {
 		req.DefaultBalance = 0
+	}
+	if req.RegistrationUserLimit < 0 {
+		req.RegistrationUserLimit = 0
 	}
 	if req.SMTPPort <= 0 {
 		req.SMTPPort = 587
@@ -495,6 +504,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PasswordResetEnabled:             req.PasswordResetEnabled,
 		FrontendURL:                      req.FrontendURL,
 		InvitationCodeEnabled:            req.InvitationCodeEnabled,
+		RegistrationUserLimit:            req.RegistrationUserLimit,
+		OAuthRegistrationEnabled:         req.OAuthRegistrationEnabled,
+		OAuthInvitationCodeEnabled:       req.OAuthInvitationCodeEnabled,
 		TotpEnabled:                      req.TotpEnabled,
 		SMTPHost:                         req.SMTPHost,
 		SMTPPort:                         req.SMTPPort,
@@ -684,6 +696,18 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.FrontendURL != after.FrontendURL {
 		changed = append(changed, "frontend_url")
+	}
+	if before.InvitationCodeEnabled != after.InvitationCodeEnabled {
+		changed = append(changed, "invitation_code_enabled")
+	}
+	if before.RegistrationUserLimit != after.RegistrationUserLimit {
+		changed = append(changed, "registration_user_limit")
+	}
+	if before.OAuthRegistrationEnabled != after.OAuthRegistrationEnabled {
+		changed = append(changed, "oauth_registration_enabled")
+	}
+	if before.OAuthInvitationCodeEnabled != after.OAuthInvitationCodeEnabled {
+		changed = append(changed, "oauth_invitation_code_enabled")
 	}
 	if before.TotpEnabled != after.TotpEnabled {
 		changed = append(changed, "totp_enabled")

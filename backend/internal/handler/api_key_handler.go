@@ -3,11 +3,15 @@ package handler
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/B022MC/b022hub/internal/handler/dto"
+	"github.com/B022MC/b022hub/internal/pkg/antigravity"
+	"github.com/B022MC/b022hub/internal/pkg/gemini"
+	"github.com/B022MC/b022hub/internal/pkg/openai"
 	"github.com/B022MC/b022hub/internal/pkg/pagination"
 	"github.com/B022MC/b022hub/internal/pkg/response"
 	middleware2 "github.com/B022MC/b022hub/internal/server/middleware"
@@ -18,13 +22,15 @@ import (
 
 // APIKeyHandler handles API key-related requests
 type APIKeyHandler struct {
-	apiKeyService *service.APIKeyService
+	apiKeyService  *service.APIKeyService
+	gatewayService *service.GatewayService
 }
 
 // NewAPIKeyHandler creates a new APIKeyHandler
-func NewAPIKeyHandler(apiKeyService *service.APIKeyService) *APIKeyHandler {
+func NewAPIKeyHandler(apiKeyService *service.APIKeyService, gatewayService *service.GatewayService) *APIKeyHandler {
 	return &APIKeyHandler{
-		apiKeyService: apiKeyService,
+		apiKeyService:  apiKeyService,
+		gatewayService: gatewayService,
 	}
 }
 
@@ -265,6 +271,45 @@ func (h *APIKeyHandler) Delete(c *gin.Context) {
 	response.Success(c, gin.H{"message": "API key deleted successfully"})
 }
 
+type userAvailableModelsGroup struct {
+	Group      dto.Group `json:"group"`
+	Models     []string  `json:"models"`
+	ModelCount int       `json:"model_count"`
+}
+
+type userAvailableModelsResponse struct {
+	Groups []userAvailableModelsGroup `json:"groups"`
+}
+
+// GetAvailableModels 获取当前用户可访问分组下的可用模型列表
+// GET /api/v1/groups/models
+func (h *APIKeyHandler) GetAvailableModels(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+
+	groups, err := h.apiKeyService.GetAvailableGroups(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	out := make([]userAvailableModelsGroup, 0, len(groups))
+	for i := range groups {
+		group := &groups[i]
+		models := normalizeAvailableModelIDs(fetchGroupAvailableModels(c.Request.Context(), h.gatewayService, group), group.Platform)
+		out = append(out, userAvailableModelsGroup{
+			Group:      *dto.GroupFromService(group),
+			Models:     models,
+			ModelCount: len(models),
+		})
+	}
+
+	response.Success(c, userAvailableModelsResponse{Groups: out})
+}
+
 // GetAvailableGroups 获取用户可以绑定的分组列表
 // GET /api/v1/groups/available
 func (h *APIKeyHandler) GetAvailableGroups(c *gin.Context) {
@@ -303,4 +348,71 @@ func (h *APIKeyHandler) GetUserGroupRates(c *gin.Context) {
 	}
 
 	response.Success(c, rates)
+}
+
+func fetchGroupAvailableModels(ctx context.Context, gatewayService *service.GatewayService, group *service.Group) []string {
+	if gatewayService == nil || group == nil || group.ID <= 0 {
+		return nil
+	}
+	groupID := group.ID
+	return gatewayService.GetAvailableModels(ctx, &groupID, group.Platform)
+}
+
+func normalizeAvailableModelIDs(modelIDs []string, platform string) []string {
+	normalized := uniqueSortedModelIDs(modelIDs)
+	if len(normalized) > 0 {
+		return normalized
+	}
+	return defaultAvailableModelIDs(platform)
+}
+
+func uniqueSortedModelIDs(modelIDs []string) []string {
+	if len(modelIDs) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(modelIDs))
+	out := make([]string, 0, len(modelIDs))
+	for _, modelID := range modelIDs {
+		trimmed := strings.TrimSpace(modelID)
+		if trimmed == "" {
+			continue
+		}
+		if _, exists := seen[trimmed]; exists {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		out = append(out, trimmed)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func defaultAvailableModelIDs(platform string) []string {
+	switch strings.ToLower(strings.TrimSpace(platform)) {
+	case service.PlatformOpenAI:
+		return uniqueSortedModelIDs(openai.DefaultModelIDs())
+	case service.PlatformGemini:
+		models := gemini.DefaultModels()
+		out := make([]string, 0, len(models))
+		for _, model := range models {
+			out = append(out, strings.TrimPrefix(model.Name, "models/"))
+		}
+		return uniqueSortedModelIDs(out)
+	case service.PlatformSora:
+		models := service.DefaultSoraModels(nil)
+		out := make([]string, 0, len(models))
+		for _, model := range models {
+			out = append(out, model.ID)
+		}
+		return uniqueSortedModelIDs(out)
+	case service.PlatformAnthropic, service.PlatformAntigravity:
+		models := antigravity.DefaultModels()
+		out := make([]string, 0, len(models))
+		for _, model := range models {
+			out = append(out, model.ID)
+		}
+		return uniqueSortedModelIDs(out)
+	default:
+		return nil
+	}
 }

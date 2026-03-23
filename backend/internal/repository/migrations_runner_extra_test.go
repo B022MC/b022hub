@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"io/fs"
@@ -59,6 +60,18 @@ func TestLatestMigrationBaseline(t *testing.T) {
 		require.Len(t, hash, 64)
 	})
 
+	t.Run("ignores_hidden_sql_files", func(t *testing.T) {
+		fsys := fstest.MapFS{
+			"._999_hidden.sql": &fstest.MapFile{Data: []byte("SELECT 999;")},
+			"010_final.sql":   &fstest.MapFile{Data: []byte("CREATE TABLE t2(id int);")},
+		}
+		version, description, hash, err := latestMigrationBaseline(fsys)
+		require.NoError(t, err)
+		require.Equal(t, "010_final", version)
+		require.Equal(t, "010_final", description)
+		require.Len(t, hash, 64)
+	})
+
 	t.Run("read_file_error", func(t *testing.T) {
 		fsys := fstest.MapFS{
 			"010_bad.sql": &fstest.MapFile{Mode: fs.ModeDir},
@@ -66,6 +79,36 @@ func TestLatestMigrationBaseline(t *testing.T) {
 		_, _, _, err := latestMigrationBaseline(fsys)
 		require.Error(t, err)
 	})
+}
+
+func TestApplyMigrationsFS_IgnoresHiddenSQLFiles(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	prepareMigrationsBootstrapExpectations(mock)
+	mock.ExpectQuery("SELECT checksum FROM schema_migrations WHERE filename = \\$1").
+		WithArgs("001_init.sql").
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectBegin()
+	mock.ExpectExec("CREATE TABLE t\\(id int\\);").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("INSERT INTO schema_migrations \\(filename, checksum\\) VALUES \\(\\$1, \\$2\\)").
+		WithArgs("001_init.sql", sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	mock.ExpectExec("SELECT pg_advisory_unlock\\(\\$1\\)").
+		WithArgs(migrationsAdvisoryLockID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	fsys := fstest.MapFS{
+		"._001_hidden.sql": &fstest.MapFile{Data: []byte("SELECT broken;")},
+		"001_init.sql":     &fstest.MapFile{Data: []byte("CREATE TABLE t(id int);")},
+	}
+
+	err = applyMigrationsFS(context.Background(), db, fsys)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestIsMigrationChecksumCompatible_AdditionalCases(t *testing.T) {

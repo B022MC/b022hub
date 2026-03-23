@@ -116,6 +116,14 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*service
 	return out, nil
 }
 
+func (r *userRepository) CountUsers(ctx context.Context) (int64, error) {
+	total, err := r.client.User.Query().Count(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return int64(total), nil
+}
+
 func (r *userRepository) Update(ctx context.Context, userIn *service.User) error {
 	if userIn == nil {
 		return nil

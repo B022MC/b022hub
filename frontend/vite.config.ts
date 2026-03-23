@@ -21,8 +21,9 @@ function injectPublicSettings(backendUrl: string): Plugin {
           if (response.ok) {
             const data = await response.json()
             if (data.code === 0 && data.data) {
-              const script = `<script>window.__APP_CONFIG__=${JSON.stringify(data.data)};</script>`
-              return html.replace('</head>', `${script}\n</head>`)
+              const encoded = Buffer.from(JSON.stringify(data.data), 'utf8').toString('base64')
+              const template = `<template id="__APP_CONFIG__" data-encoding="base64">${encoded}</template>`
+              return html.replace('</head>', `${template}\n</head>`)
             }
           }
         } catch (e) {

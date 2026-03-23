@@ -34,6 +34,7 @@ const sectionRefs = ref<HTMLElement[]>([])
 const activeSectionIndex = shallowRef(0)
 const sectionProgresses = ref<number[]>([1, 0, 0, 0, 0])
 const typewrittenBrand = shallowRef('')
+const hasTypedBrand = shallowRef(false)
 const showCursor = shallowRef(true)
 const origin = shallowRef('')
 const claudeInstallKey = shallowRef('mac')
@@ -43,8 +44,6 @@ const geminiInstallKey = shallowRef('node')
 let scrollRafId = 0
 let cursorTimer: ReturnType<typeof setInterval> | null = null
 let typeTimer: ReturnType<typeof setTimeout> | null = null
-let deleteTimer: ReturnType<typeof setTimeout> | null = null
-let pauseTimer: ReturnType<typeof setTimeout> | null = null
 let startTimer: ReturnType<typeof setTimeout> | null = null
 
 const fallbackMark = computed(() => 'b022')
@@ -198,7 +197,7 @@ function updateScrollState() {
   if (nextIndex >= 0 && nextIndex !== activeSectionIndex.value) {
     activeSectionIndex.value = nextIndex
 
-    if (nextIndex === 0) {
+    if (nextIndex === 0 && !hasTypedBrand.value) {
       startTypewriter()
     }
   }
@@ -221,14 +220,6 @@ function clearTypewriterTimers() {
     clearTimeout(typeTimer)
     typeTimer = null
   }
-  if (deleteTimer) {
-    clearTimeout(deleteTimer)
-    deleteTimer = null
-  }
-  if (pauseTimer) {
-    clearTimeout(pauseTimer)
-    pauseTimer = null
-  }
   if (startTimer) {
     clearTimeout(startTimer)
     startTimer = null
@@ -236,6 +227,17 @@ function clearTypewriterTimers() {
 }
 
 function startTypewriter() {
+  if (hasTypedBrand.value) {
+    typewrittenBrand.value = props.siteName
+    showCursor.value = true
+    if (!cursorTimer) {
+      cursorTimer = setInterval(() => {
+        showCursor.value = !showCursor.value
+      }, 600)
+    }
+    return
+  }
+
   clearTypewriterTimers()
   typewrittenBrand.value = ''
   showCursor.value = true
@@ -252,22 +254,8 @@ function startTypewriter() {
       typeTimer = setTimeout(() => typeStep(index + 1), 140)
       return
     }
-
-    pauseTimer = setTimeout(() => deleteStep(brand.length - 1), 1600)
-  }
-
-  const deleteStep = (index: number) => {
-    if (activeSectionIndex.value !== 0) {
-      return
-    }
-
-    if (index >= 0) {
-      typewrittenBrand.value = brand.slice(0, index)
-      deleteTimer = setTimeout(() => deleteStep(index - 1), 80)
-      return
-    }
-
-    startTimer = setTimeout(() => typeStep(1), 700)
+    typewrittenBrand.value = brand
+    hasTypedBrand.value = true
   }
 
   startTimer = setTimeout(() => typeStep(1), 250)
@@ -567,9 +555,12 @@ onBeforeUnmount(() => {
       </div>
     </main>
 
-    <footer class="relative z-20 px-5 pb-10 pt-2 sm:px-8 md:px-14 lg:px-20">
-      <div class="mx-auto max-w-7xl rounded-[1.75rem] border border-[rgba(227,224,211,0.12)] bg-[rgba(13,12,11,0.58)] px-5 py-4 text-center backdrop-blur-xl">
-        <p class="b022hub-theme-text-muted text-sm tracking-[0.04em]">
+    <footer class="b022hub-footer relative z-20 px-5 pb-10 pt-2 sm:px-8 md:px-14 lg:px-20">
+      <div class="b022hub-theme-panel mx-auto flex max-w-7xl flex-col items-center justify-center gap-2 rounded-[1.75rem] px-5 py-4 text-center backdrop-blur-xl sm:flex-row sm:gap-3">
+        <span class="b022hub-theme-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
+          {{ t('home.footer.noticeLabel') }}
+        </span>
+        <p class="b022hub-theme-text-body text-sm tracking-[0.04em]">
           {{ t('home.footer.forkNotice', { siteName }) }}
         </p>
       </div>
@@ -580,6 +571,11 @@ onBeforeUnmount(() => {
 <style scoped>
 .b022hub-shell {
   background: var(--b022-bg);
+}
+
+.b022hub-footer {
+  scroll-snap-align: end;
+  scroll-snap-stop: always;
 }
 
 .b022hub-grid,

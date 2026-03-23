@@ -91,6 +91,9 @@ export interface PublicSettings {
   promo_code_enabled: boolean
   password_reset_enabled: boolean
   invitation_code_enabled: boolean
+  registration_user_limit: number
+  oauth_registration_enabled: boolean
+  oauth_invitation_code_enabled: boolean
   turnstile_enabled: boolean
   turnstile_site_key: string
   site_name: string

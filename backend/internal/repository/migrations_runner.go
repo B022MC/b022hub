@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -142,7 +143,7 @@ func applyMigrationsFS(ctx context.Context, db *sql.DB, fsys fs.FS) error {
 
 	// 获取所有 .sql 迁移文件并按文件名排序。
 	// 命名规范：使用零填充数字前缀（如 001_init.sql, 002_add_users.sql）。
-	files, err := fs.Glob(fsys, "*.sql")
+	files, err := listMigrationFiles(fsys)
 	if err != nil {
 		return fmt.Errorf("list migrations: %w", err)
 	}
@@ -302,7 +303,7 @@ func tableExists(ctx context.Context, db *sql.DB, tableName string) (bool, error
 }
 
 func latestMigrationBaseline(fsys fs.FS) (string, string, string, error) {
-	files, err := fs.Glob(fsys, "*.sql")
+	files, err := listMigrationFiles(fsys)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -320,6 +321,23 @@ func latestMigrationBaseline(fsys fs.FS) (string, string, string, error) {
 	hash := hex.EncodeToString(sum[:])
 	version := strings.TrimSuffix(name, ".sql")
 	return version, version, hash, nil
+}
+
+func listMigrationFiles(fsys fs.FS) ([]string, error) {
+	files, err := fs.Glob(fsys, "*.sql")
+	if err != nil {
+		return nil, err
+	}
+
+	filtered := make([]string, 0, len(files))
+	for _, name := range files {
+		base := path.Base(name)
+		if strings.HasPrefix(base, ".") {
+			continue
+		}
+		filtered = append(filtered, name)
+	}
+	return filtered, nil
 }
 
 func isMigrationChecksumCompatible(name, dbChecksum, fileChecksum string) bool {

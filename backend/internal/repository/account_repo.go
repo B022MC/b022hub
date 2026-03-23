@@ -1172,6 +1172,51 @@ func (r *accountRepository) AutoPauseExpiredAccounts(ctx context.Context, now ti
 	return rows, nil
 }
 
+func (r *accountRepository) AutoDeleteRateLimitedAccounts(ctx context.Context, now time.Time) (int64, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil && !errors.Is(err, dbent.ErrTxStarted) {
+		return 0, err
+	}
+
+	var txClient *dbent.Client
+	if err == nil {
+		defer func() { _ = tx.Rollback() }()
+		txClient = tx.Client()
+	} else {
+		txClient = r.client
+	}
+
+	ids, err := txClient.Account.Query().
+		Where(dbaccount.RateLimitResetAtGT(now)).
+		IDs(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	if _, err := txClient.AccountGroup.Delete().Where(dbaccountgroup.AccountIDIn(ids...)).Exec(ctx); err != nil {
+		return 0, err
+	}
+	deleted, err := txClient.Account.Delete().Where(dbaccount.IDIn(ids...)).Exec(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	if tx != nil {
+		if err := tx.Commit(); err != nil {
+			return 0, err
+		}
+	}
+	if deleted > 0 {
+		if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventFullRebuild, nil, nil, nil); err != nil {
+			logger.LegacyPrintf("repository.account", "[SchedulerOutbox] enqueue auto delete rebuild failed: err=%v", err)
+		}
+	}
+	return int64(deleted), nil
+}
+
 func (r *accountRepository) UpdateExtra(ctx context.Context, id int64, updates map[string]any) error {
 	if len(updates) == 0 {
 		return nil
