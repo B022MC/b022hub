@@ -13,6 +13,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func postGenerateValidation(t *testing.T, handler *RedeemHandler, body any) *httptest.ResponseRecorder {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+
+	jsonBytes, err := json.Marshal(body)
+	require.NoError(t, err)
+
+	router := gin.New()
+	router.POST("/api/v1/admin/redeem-codes/generate", handler.Generate)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/redeem-codes/generate", bytes.NewReader(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	return rec
+}
+
 // newCreateAndRedeemHandler creates a RedeemHandler with a non-nil (but minimal)
 // RedeemService so that CreateAndRedeem's nil guard passes and we can test the
 // parameter-validation layer that runs before any service call.
@@ -132,4 +150,28 @@ func TestCreateAndRedeem_BalanceIgnoresSubscriptionFields(t *testing.T) {
 
 	assert.NotEqual(t, http.StatusBadRequest, code,
 		"balance type should not require group_id or validity_days")
+}
+
+func TestGenerateRedeemCodes_AcceptsBatchLimitOf500(t *testing.T) {
+	h := &RedeemHandler{adminService: newStubAdminService()}
+
+	rec := postGenerateValidation(t, h, map[string]any{
+		"count": 500,
+		"type":  "invitation",
+		"value": 0,
+	})
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestGenerateRedeemCodes_RejectsCountsAboveBatchLimit(t *testing.T) {
+	h := &RedeemHandler{adminService: newStubAdminService()}
+
+	rec := postGenerateValidation(t, h, map[string]any{
+		"count": 501,
+		"type":  "invitation",
+		"value": 0,
+	})
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }

@@ -285,10 +285,13 @@
                 v-model.number="generateForm.count"
                 type="number"
                 min="1"
-                max="100"
+                :max="maxGeneratedCodesPerBatch"
                 required
                 class="input"
               />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.redeem.countLimitHint', { count: maxGeneratedCodesPerBatch }) }}
+              </p>
             </div>
             <div class="flex justify-end gap-3 pt-2">
               <button type="button" @click="showGenerateDialog = false" class="btn btn-secondary">
@@ -348,6 +351,13 @@
           </div>
           <!-- Content -->
           <div class="p-5">
+            <div class="mb-4">
+              <label class="input-label mb-2 block">{{ t('admin.redeem.exportFormat') }}</label>
+              <Select v-model="generatedExportFormat" :options="generatedExportFormatOptions" />
+              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.redeem.importCompatibleHint') }}
+              </p>
+            </div>
             <div class="relative">
               <textarea
                 readonly
@@ -391,14 +401,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useClipboard } from '@/composables/useClipboard'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { adminAPI } from '@/api/admin'
 import { formatDateTime } from '@/utils/format'
+import {
+  formatRedeemCodesForExport,
+  getRedeemCodeExportExtension
+} from '@/utils/redeemCodeExport'
 import type { RedeemCode, RedeemCodeType, Group, GroupPlatform, SubscriptionType } from '@/types'
+import type { RedeemCodeExportFormat } from '@/utils/redeemCodeExport'
 import type { Column } from '@/components/common/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
@@ -423,10 +438,13 @@ interface GroupOption {
   rate: number
 }
 
+const maxGeneratedCodesPerBatch = 500
+
 const showGenerateDialog = ref(false)
 const showResultDialog = ref(false)
 const generatedCodes = ref<RedeemCode[]>([])
 const subscriptionGroups = ref<Group[]>([])
+const generatedExportFormat = shallowRef<RedeemCodeExportFormat>('lines')
 
 // 订阅类型分组选项
 const subscriptionGroupOptions = computed(() => {
@@ -442,12 +460,26 @@ const subscriptionGroupOptions = computed(() => {
     }))
 })
 
+const generatedCodeValues = computed(() => {
+  return generatedCodes.value.map((code) => code.code)
+})
+
+const generatedExportFormatOptions = computed(() => [
+  { value: 'lines', label: t('admin.redeem.exportFormats.lines') },
+  { value: 'comma', label: t('admin.redeem.exportFormats.comma') },
+  { value: 'json', label: t('admin.redeem.exportFormats.json') }
+])
+
 const generatedCodesText = computed(() => {
-  return generatedCodes.value.map((code) => code.code).join('\n')
+  return formatRedeemCodesForExport(generatedCodeValues.value, generatedExportFormat.value)
+})
+
+const generatedCodesFileName = computed(() => {
+  return `redeem-codes-${new Date().toISOString().split('T')[0]}.${getRedeemCodeExportExtension(generatedExportFormat.value)}`
 })
 
 const textareaHeight = computed(() => {
-  const lineCount = generatedCodes.value.length
+  const lineCount = Math.max(generatedCodesText.value.split('\n').length, 1)
   const lineHeight = 24 // approximate line height in px
   const padding = 24 // top + bottom padding
   const minHeight = 60
@@ -461,10 +493,15 @@ const textareaHeight = computed(() => {
 
 const copiedAll = ref(false)
 
+watch(generatedExportFormat, () => {
+  copiedAll.value = false
+})
+
 const closeResultDialog = () => {
   showResultDialog.value = false
   generatedCodes.value = []
   copiedAll.value = false
+  generatedExportFormat.value = 'lines'
 }
 
 const copyGeneratedCodes = async () => {
@@ -480,11 +517,13 @@ const copyGeneratedCodes = async () => {
 }
 
 const downloadGeneratedCodes = () => {
-  const blob = new Blob([generatedCodesText.value], { type: 'text/plain' })
+  const blob = new Blob([generatedCodesText.value], {
+    type: generatedExportFormat.value === 'json' ? 'application/json' : 'text/plain'
+  })
   const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `redeem-codes-${new Date().toISOString().split('T')[0]}.txt`
+  link.download = generatedCodesFileName.value
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
@@ -630,6 +669,11 @@ const handlePageSizeChange = (pageSize: number) => {
 }
 
 const handleGenerateCodes = async () => {
+  if (generateForm.count > maxGeneratedCodesPerBatch) {
+    appStore.showError(t('admin.redeem.countLimitExceeded', { count: maxGeneratedCodesPerBatch }))
+    return
+  }
+
   // 订阅类型必须选择分组
   if (generateForm.type === 'subscription' && !generateForm.group_id) {
     appStore.showError(t('admin.redeem.groupRequired'))
@@ -647,6 +691,7 @@ const handleGenerateCodes = async () => {
     )
     showGenerateDialog.value = false
     generatedCodes.value = result
+    generatedExportFormat.value = 'lines'
     showResultDialog.value = true
     // 重置表单
     generateForm.group_id = null

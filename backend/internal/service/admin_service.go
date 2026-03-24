@@ -314,6 +314,8 @@ type GenerateRedeemCodesInput struct {
 	ValidityDays int    // 订阅类型专用：有效天数
 }
 
+const maxGeneratedRedeemCodesPerBatch = 500
+
 type ProxyBatchDeleteResult struct {
 	DeletedIDs []int64                   `json:"deleted_ids"`
 	Skipped    []ProxyBatchDeleteSkipped `json:"skipped"`
@@ -2040,6 +2042,13 @@ func (s *adminServiceImpl) GetRedeemCode(ctx context.Context, id int64) (*Redeem
 }
 
 func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *GenerateRedeemCodesInput) ([]RedeemCode, error) {
+	if input == nil || input.Count < 1 || input.Count > maxGeneratedRedeemCodesPerBatch {
+		return nil, infraerrors.BadRequest(
+			"INVALID_REDEEM_CODE_COUNT",
+			fmt.Sprintf("count must be between 1 and %d", maxGeneratedRedeemCodesPerBatch),
+		)
+	}
+
 	// 如果是订阅类型，验证必须有 GroupID
 	if input.Type == RedeemTypeSubscription {
 		if input.GroupID == nil {

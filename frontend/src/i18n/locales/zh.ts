@@ -3341,9 +3341,18 @@ export default {
       amount: '金额 ($)',
       value: '面值',
       count: '数量',
+      countLimitHint: '单次最多生成 {count} 个。',
+      countLimitExceeded: '单次最多只能生成 {count} 个兑换码。',
       generate: '生成',
       copyAll: '全部复制',
       download: '下载',
+      exportFormat: '导出格式',
+      importCompatibleHint: '可按当前格式直接复制或下载后导入到一码一用分发内容中。',
+      exportFormats: {
+        lines: '每行一个',
+        comma: '逗号分隔',
+        json: 'JSON 数组'
+      },
       codesExported: '兑换码导出成功',
       codeDeleted: '兑换码删除成功',
       codesDeleted: '成功删除 {count} 个未使用的兑换码',

@@ -3207,11 +3207,21 @@ export default {
       amount: 'Amount ($)',
       value: 'Value',
       count: 'Count',
+      countLimitHint: 'Generate up to {count} codes per batch.',
+      countLimitExceeded: 'You can generate at most {count} codes in one batch.',
       generating: 'Generating...',
       generate: 'Generate',
       copyAll: 'Copy All',
       copied: 'Copied!',
       download: 'Download',
+      exportFormat: 'Export Format',
+      importCompatibleHint:
+        'Copy or download in the current format for direct import into one-code-per-user distribution.',
+      exportFormats: {
+        lines: 'One per line',
+        comma: 'Comma separated',
+        json: 'JSON array'
+      },
       codesExported: 'Codes exported successfully',
       codeDeleted: 'Redeem code deleted successfully',
       codesDeleted: 'Successfully deleted {count} unused code(s)',
