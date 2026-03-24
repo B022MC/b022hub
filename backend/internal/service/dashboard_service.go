@@ -106,6 +106,7 @@ func (s *DashboardService) GetDashboardStats(ctx context.Context) (*usagestats.D
 	if s.cache != nil {
 		cached, fresh, err := s.getCachedDashboardStats(ctx)
 		if err == nil && cached != nil {
+			cached.ApplyDerivedMetrics()
 			s.refreshAggregationStaleness(cached)
 			if !fresh {
 				s.refreshDashboardStatsAsync()
@@ -121,6 +122,7 @@ func (s *DashboardService) GetDashboardStats(ctx context.Context) (*usagestats.D
 	if err != nil {
 		return nil, fmt.Errorf("get dashboard stats: %w", err)
 	}
+	stats.ApplyDerivedMetrics()
 	return stats, nil
 }
 

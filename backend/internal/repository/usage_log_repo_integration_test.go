@@ -750,11 +750,13 @@ func (s *UsageLogRepoSuite) TestDashboardStats_TodayTotalsAndPerformance() {
 	s.Require().Equal(baseStats.TotalOutputTokens+int64(28), stats.TotalOutputTokens, "TotalOutputTokens mismatch")
 	s.Require().Equal(baseStats.TotalCacheCreationTokens+int64(3), stats.TotalCacheCreationTokens, "TotalCacheCreationTokens mismatch")
 	s.Require().Equal(baseStats.TotalCacheReadTokens+int64(4), stats.TotalCacheReadTokens, "TotalCacheReadTokens mismatch")
+	s.Require().InDelta((float64(baseStats.TotalCacheReadTokens)+4)/float64(baseStats.TotalInputTokens+16+baseStats.TotalCacheReadTokens+4), stats.TotalCacheHitRate, 0.0001, "TotalCacheHitRate mismatch")
 	s.Require().Equal(baseStats.TotalTokens+int64(51), stats.TotalTokens, "TotalTokens mismatch")
 	s.Require().Equal(baseStats.TotalCost+2.3, stats.TotalCost, "TotalCost mismatch")
 	s.Require().Equal(baseStats.TotalActualCost+2.0, stats.TotalActualCost, "TotalActualCost mismatch")
 	s.Require().GreaterOrEqual(stats.TodayRequests, int64(1), "expected TodayRequests >= 1")
 	s.Require().GreaterOrEqual(stats.TodayCost, 0.0, "expected TodayCost >= 0")
+	s.Require().InDelta(0.2666666667, stats.TodayCacheHitRate, 0.0001, "TodayCacheHitRate mismatch")
 
 	wantRpm, wantTpm, err := s.repo.getPerformanceStats(s.ctx, 0)
 	s.Require().NoError(err, "getPerformanceStats")
@@ -830,10 +832,12 @@ func (s *UsageLogRepoSuite) TestDashboardStatsWithRange_Fallback() {
 	s.Require().Equal(int64(26), stats.TotalOutputTokens)
 	s.Require().Equal(int64(1), stats.TotalCacheCreationTokens)
 	s.Require().Equal(int64(3), stats.TotalCacheReadTokens)
+	s.Require().InDelta(1.0/6.0, stats.TotalCacheHitRate, 0.0001)
 	s.Require().Equal(int64(45), stats.TotalTokens)
 	s.Require().Equal(1.5, stats.TotalCost)
 	s.Require().Equal(1.4, stats.TotalActualCost)
 	s.Require().InEpsilon(150.0, stats.AverageDurationMs, 0.0001)
+	s.Require().InDelta(1.0/6.0, stats.TodayCacheHitRate, 0.0001)
 }
 
 // --- GetUserDashboardStats ---
@@ -849,6 +853,7 @@ func (s *UsageLogRepoSuite) TestGetUserDashboardStats() {
 	s.Require().NoError(err, "GetUserDashboardStats")
 	s.Require().Equal(int64(1), stats.TotalAPIKeys)
 	s.Require().Equal(int64(1), stats.TotalRequests)
+	s.Require().Zero(stats.TotalCacheHitRate)
 }
 
 // --- GetAccountTodayStats ---
@@ -1347,6 +1352,7 @@ func (s *UsageLogRepoSuite) TestGetUserModelStats() {
 	// Should be ordered by total_tokens DESC
 	s.Require().Equal("claude-3-opus", stats[0].Model)
 	s.Require().Equal(int64(300), stats[0].TotalTokens)
+	s.Require().InDelta(0.0, stats[0].CacheHitRate, 0.0001)
 }
 
 // --- GetUsageTrendWithFilters ---
@@ -1406,15 +1412,16 @@ func (s *UsageLogRepoSuite) TestGetModelStatsWithFilters() {
 	base := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
 
 	log1 := &service.UsageLog{
-		UserID:       user.ID,
-		APIKeyID:     apiKey.ID,
-		AccountID:    account.ID,
-		Model:        "claude-3-opus",
-		InputTokens:  100,
-		OutputTokens: 200,
-		TotalCost:    0.5,
-		ActualCost:   0.5,
-		CreatedAt:    base,
+		UserID:          user.ID,
+		APIKeyID:        apiKey.ID,
+		AccountID:       account.ID,
+		Model:           "claude-3-opus",
+		InputTokens:     80,
+		OutputTokens:    200,
+		CacheReadTokens: 20,
+		TotalCost:       0.5,
+		ActualCost:      0.5,
+		CreatedAt:       base,
 	}
 	_, err := s.repo.Create(s.ctx, log1)
 	s.Require().NoError(err)
@@ -1440,16 +1447,22 @@ func (s *UsageLogRepoSuite) TestGetModelStatsWithFilters() {
 	stats, err := s.repo.GetModelStatsWithFilters(s.ctx, startTime, endTime, user.ID, 0, 0, 0, nil, nil, nil)
 	s.Require().NoError(err, "GetModelStatsWithFilters user filter")
 	s.Require().Len(stats, 2)
+	s.Require().Equal("claude-3-opus", stats[0].Model)
+	s.Require().InDelta(0.2, stats[0].CacheHitRate, 0.0001)
 
 	// Test with apiKey filter
 	stats, err = s.repo.GetModelStatsWithFilters(s.ctx, startTime, endTime, 0, apiKey.ID, 0, 0, nil, nil, nil)
 	s.Require().NoError(err, "GetModelStatsWithFilters apiKey filter")
 	s.Require().Len(stats, 2)
+	s.Require().Equal("claude-3-opus", stats[0].Model)
+	s.Require().InDelta(0.2, stats[0].CacheHitRate, 0.0001)
 
 	// Test with account filter
 	stats, err = s.repo.GetModelStatsWithFilters(s.ctx, startTime, endTime, 0, 0, account.ID, 0, nil, nil, nil)
 	s.Require().NoError(err, "GetModelStatsWithFilters account filter")
 	s.Require().Len(stats, 2)
+	s.Require().Equal("claude-3-opus", stats[0].Model)
+	s.Require().InDelta(0.2, stats[0].CacheHitRate, 0.0001)
 }
 
 // --- GetAccountUsageStats ---

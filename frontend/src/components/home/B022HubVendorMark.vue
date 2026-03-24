@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { B022HubVendorId } from './b022hub'
+import { OPENAI_LOGO_PATH, type B022HubVendorId } from './b022hub'
 
 const props = withDefaults(defineProps<{
   vendor: B022HubVendorId
@@ -64,19 +64,11 @@ const geminiGradientId = `b022hub-gemini-${Math.random().toString(36).slice(2, 1
 
       <svg
         v-else-if="vendor === 'openai'"
-        viewBox="0 0 80 80"
+        viewBox="0 0 24 24"
         class="vendor-mark__icon"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <g class="vendor-mark__openai-knot" transform="translate(40 40)">
-          <rect class="vendor-mark__openai-loop" x="-8.5" y="-33" width="17" height="30" rx="8.5" />
-          <rect class="vendor-mark__openai-loop" x="-8.5" y="-33" width="17" height="30" rx="8.5" transform="rotate(60)" />
-          <rect class="vendor-mark__openai-loop" x="-8.5" y="-33" width="17" height="30" rx="8.5" transform="rotate(120)" />
-          <rect class="vendor-mark__openai-loop" x="-8.5" y="-33" width="17" height="30" rx="8.5" transform="rotate(180)" />
-          <rect class="vendor-mark__openai-loop" x="-8.5" y="-33" width="17" height="30" rx="8.5" transform="rotate(240)" />
-          <rect class="vendor-mark__openai-loop" x="-8.5" y="-33" width="17" height="30" rx="8.5" transform="rotate(300)" />
-        </g>
-        <circle class="vendor-mark__openai-cutout" cx="40" cy="40" r="12.5" />
+        <path class="vendor-mark__openai-path" :d="OPENAI_LOGO_PATH" />
       </svg>
 
       <svg
@@ -206,12 +198,8 @@ const geminiGradientId = `b022hub-gemini-${Math.random().toString(36).slice(2, 1
   color: #f5f1e7;
 }
 
-.vendor-mark__openai-loop {
+.vendor-mark__openai-path {
   fill: #f5f1e7;
-}
-
-.vendor-mark__openai-cutout {
-  fill: rgba(18, 17, 15, 0.95);
 }
 
 .vendor-mark--gemini .vendor-mark__symbol::before {

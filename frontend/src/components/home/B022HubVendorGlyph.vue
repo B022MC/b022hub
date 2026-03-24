@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { B022HubVendorId } from './b022hub'
+import { OPENAI_LOGO_PATH, type B022HubVendorId } from './b022hub'
 
 const props = withDefaults(defineProps<{
   vendor: B022HubVendorId
@@ -56,38 +56,17 @@ const geminiGradientId = `b022hub-glyph-gemini-${Math.random().toString(36).slic
 
     <svg
       v-else-if="vendor === 'openai'"
-      viewBox="0 0 440 440"
+      viewBox="0 0 24 24"
       class="vendor-glyph__svg"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g class="vendor-glyph__ghost vendor-glyph__ghost--openai" transform="translate(220 220)">
-        <rect
-          v-for="angle in [0, 60, 120, 180, 240, 300]"
-          :key="`openai-ghost-${angle}`"
-          class="vendor-glyph__openai-ghost-loop"
-          x="-24"
-          y="-186"
-          width="48"
-          height="136"
-          rx="24"
-          :transform="`rotate(${angle})`"
-        />
+      <g class="vendor-glyph__ghost vendor-glyph__ghost--openai">
+        <path class="vendor-glyph__openai-ghost-path" :d="OPENAI_LOGO_PATH" />
       </g>
 
-      <g class="vendor-glyph__main vendor-glyph__main--openai" transform="translate(220 220)">
-        <rect
-          v-for="angle in [0, 60, 120, 180, 240, 300]"
-          :key="`openai-main-${angle}`"
-          class="vendor-glyph__openai-loop"
-          x="-18"
-          y="-168"
-          width="36"
-          height="122"
-          rx="18"
-          :transform="`rotate(${angle})`"
-        />
+      <g class="vendor-glyph__main vendor-glyph__main--openai">
+        <path class="vendor-glyph__openai-path" :d="OPENAI_LOGO_PATH" />
       </g>
-      <circle class="vendor-glyph__openai-cutout" cx="220" cy="220" r="64" />
     </svg>
 
     <svg
@@ -196,20 +175,12 @@ const geminiGradientId = `b022hub-glyph-gemini-${Math.random().toString(36).slic
   animation: vendor-glyph-float 8.5s ease-in-out infinite;
 }
 
-.vendor-glyph__openai-ghost-loop {
-  fill: none;
-  stroke: rgba(248, 243, 231, 0.22);
-  stroke-width: 10;
+.vendor-glyph__openai-ghost-path {
+  fill: rgba(248, 243, 231, 0.18);
 }
 
-.vendor-glyph__openai-loop {
-  fill: none;
-  stroke: #f5f1e7;
-  stroke-width: 24;
-}
-
-.vendor-glyph__openai-cutout {
-  fill: rgba(15, 14, 12, 0.92);
+.vendor-glyph__openai-path {
+  fill: #f5f1e7;
 }
 
 .vendor-glyph__ghost--gemini {

@@ -123,6 +123,10 @@
                     / ${{ formatCost(stats.today_cost) }}</span
                   >
                 </p>
+                <p class="text-xs text-amber-600 dark:text-amber-400">
+                  {{ t('admin.dashboard.cacheHitRate') }}:
+                  {{ formatCacheHitRate(stats.today_cache_hit_rate, stats.today_input_tokens, stats.today_cache_read_tokens) }}
+                </p>
               </div>
             </div>
           </div>
@@ -152,6 +156,10 @@
                   >
                     / ${{ formatCost(stats.total_cost) }}</span
                   >
+                </p>
+                <p class="text-xs text-indigo-600 dark:text-indigo-400">
+                  {{ t('admin.dashboard.cacheHitRate') }}:
+                  {{ formatCacheHitRate(stats.total_cache_hit_rate, stats.total_input_tokens, stats.total_cache_read_tokens) }}
                 </p>
               </div>
             </div>
@@ -538,6 +546,15 @@ const formatDuration = (ms: number): string => {
     return `${(ms / 1000).toFixed(2)}s`
   }
   return `${Math.round(ms)}ms`
+}
+
+const formatCacheHitRate = (rate: number | undefined, inputTokens: number | undefined, cacheReadTokens: number | undefined): string => {
+  const input = inputTokens || 0
+  const cacheRead = cacheReadTokens || 0
+  const denominator = input + cacheRead
+  if (denominator <= 0) return '-'
+  const normalized = typeof rate === 'number' && Number.isFinite(rate) ? rate : (cacheRead / denominator)
+  return `${(normalized * 100).toFixed(2)}%`
 }
 
 const goToUserUsage = (item: UserSpendingRankingItem) => {

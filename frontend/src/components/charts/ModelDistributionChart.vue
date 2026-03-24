@@ -113,6 +113,7 @@
               <th class="pb-2 text-left">{{ t('admin.dashboard.model') }}</th>
               <th class="pb-2 text-right">{{ t('admin.dashboard.requests') }}</th>
               <th class="pb-2 text-right">{{ t('admin.dashboard.tokens') }}</th>
+              <th class="pb-2 text-right">{{ t('admin.dashboard.cacheHitRate') }}</th>
               <th class="pb-2 text-right">{{ t('admin.dashboard.actual') }}</th>
               <th class="pb-2 text-right">{{ t('admin.dashboard.standard') }}</th>
             </tr>
@@ -139,6 +140,9 @@
                 <td class="py-1.5 text-right text-gray-600 dark:text-gray-400">
                   {{ formatTokens(model.total_tokens) }}
                 </td>
+                <td class="py-1.5 text-right text-sky-600 dark:text-sky-400">
+                  {{ formatRate(model.cache_hit_rate) }}
+                </td>
                 <td class="py-1.5 text-right text-green-600 dark:text-green-400">
                   ${{ formatCost(model.actual_cost) }}
                 </td>
@@ -147,7 +151,7 @@
                 </td>
               </tr>
               <tr v-if="expandedKey === `model-${model.model}`">
-                <td colspan="5" class="p-0">
+                <td colspan="6" class="p-0">
                   <UserBreakdownSubTable
                     :items="breakdownItems"
                     :loading="breakdownLoading"
@@ -478,6 +482,8 @@ const formatTokens = (value: number): string => {
 const formatNumber = (value: number): string => {
   return value.toLocaleString()
 }
+
+const formatRate = (value: number): string => `${((value || 0) * 100).toFixed(2)}%`
 
 const getRankingUserLabel = (item: UserSpendingRankingItem): string => {
   if (item.email) return item.email

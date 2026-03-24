@@ -1308,6 +1308,7 @@ func (r *usageLogRepository) GetDashboardStats(ctx context.Context) (*DashboardS
 	}
 	stats.Rpm = rpm
 	stats.Tpm = tpm
+	stats.ApplyDerivedMetrics()
 
 	return stats, nil
 }
@@ -1336,6 +1337,7 @@ func (r *usageLogRepository) GetDashboardStatsWithRange(ctx context.Context, sta
 	}
 	stats.Rpm = rpm
 	stats.Tpm = tpm
+	stats.ApplyDerivedMetrics()
 
 	return stats, nil
 }
@@ -1434,7 +1436,6 @@ func (r *usageLogRepository) fillDashboardUsageStatsAggregated(ctx context.Conte
 	); err != nil {
 		return err
 	}
-	stats.TotalTokens = stats.TotalInputTokens + stats.TotalOutputTokens + stats.TotalCacheCreationTokens + stats.TotalCacheReadTokens
 	if stats.TotalRequests > 0 {
 		stats.AverageDurationMs = float64(totalDurationMs) / float64(stats.TotalRequests)
 	}
@@ -1470,7 +1471,7 @@ func (r *usageLogRepository) fillDashboardUsageStatsAggregated(ctx context.Conte
 			return err
 		}
 	}
-	stats.TodayTokens = stats.TodayInputTokens + stats.TodayOutputTokens + stats.TodayCacheCreationTokens + stats.TodayCacheReadTokens
+	stats.ApplyDerivedMetrics()
 
 	hourlyActiveQuery := `
 		SELECT active_users
@@ -1546,12 +1547,11 @@ func (r *usageLogRepository) fillDashboardUsageStatsFromUsageLogs(ctx context.Co
 	); err != nil {
 		return err
 	}
-	stats.TotalTokens = stats.TotalInputTokens + stats.TotalOutputTokens + stats.TotalCacheCreationTokens + stats.TotalCacheReadTokens
 	if stats.TotalRequests > 0 {
 		stats.AverageDurationMs = float64(totalDurationMs) / float64(stats.TotalRequests)
 	}
 
-	stats.TodayTokens = stats.TodayInputTokens + stats.TodayOutputTokens + stats.TodayCacheCreationTokens + stats.TodayCacheReadTokens
+	stats.ApplyDerivedMetrics()
 
 	hourStart := now.UTC().Truncate(time.Hour)
 	hourEnd := hourStart.Add(time.Hour)
@@ -2284,7 +2284,7 @@ func (r *usageLogRepository) GetUserDashboardStats(ctx context.Context, userID i
 	); err != nil {
 		return nil, err
 	}
-	stats.TotalTokens = stats.TotalInputTokens + stats.TotalOutputTokens + stats.TotalCacheCreationTokens + stats.TotalCacheReadTokens
+	stats.ApplyDerivedMetrics()
 
 	// 今日 Token 统计
 	todayStatsQuery := `
@@ -2314,7 +2314,7 @@ func (r *usageLogRepository) GetUserDashboardStats(ctx context.Context, userID i
 	); err != nil {
 		return nil, err
 	}
-	stats.TodayTokens = stats.TodayInputTokens + stats.TodayOutputTokens + stats.TodayCacheCreationTokens + stats.TodayCacheReadTokens
+	stats.ApplyDerivedMetrics()
 
 	// 性能指标：RPM 和 TPM（最近1分钟，仅统计该用户的请求）
 	rpm, tpm, err := r.getPerformanceStats(ctx, userID)
@@ -2385,7 +2385,7 @@ func (r *usageLogRepository) GetAPIKeyDashboardStats(ctx context.Context, apiKey
 	); err != nil {
 		return nil, err
 	}
-	stats.TotalTokens = stats.TotalInputTokens + stats.TotalOutputTokens + stats.TotalCacheCreationTokens + stats.TotalCacheReadTokens
+	stats.ApplyDerivedMetrics()
 
 	// 今日 Token 统计
 	todayStatsQuery := `
@@ -2415,7 +2415,7 @@ func (r *usageLogRepository) GetAPIKeyDashboardStats(ctx context.Context, apiKey
 	); err != nil {
 		return nil, err
 	}
-	stats.TodayTokens = stats.TodayInputTokens + stats.TodayOutputTokens + stats.TodayCacheCreationTokens + stats.TodayCacheReadTokens
+	stats.ApplyDerivedMetrics()
 
 	// 性能指标：RPM 和 TPM（最近5分钟，按 API Key 过滤）
 	rpm, tpm, err := r.getPerformanceStatsByAPIKey(ctx, apiKeyID)
@@ -4093,6 +4093,7 @@ func scanModelStatsRows(rows *sql.Rows) ([]ModelStat, error) {
 		); err != nil {
 			return nil, err
 		}
+		row.ApplyDerivedMetrics()
 		results = append(results, row)
 	}
 	if err := rows.Err(); err != nil {

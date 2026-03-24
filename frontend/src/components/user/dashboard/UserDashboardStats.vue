@@ -79,6 +79,9 @@
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.todayTokens') }}</p>
           <p class="text-xl font-bold text-gray-900 dark:text-white">{{ formatTokens(stats?.today_tokens || 0) }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.input') }}: {{ formatTokens(stats?.today_input_tokens || 0) }} / {{ t('dashboard.output') }}: {{ formatTokens(stats?.today_output_tokens || 0) }}</p>
+          <p class="text-xs text-blue-600 dark:text-blue-400">
+            {{ t('dashboard.cacheHitRate') }}: {{ formatCacheHitRate(stats?.today_cache_hit_rate, stats?.today_input_tokens, stats?.today_cache_read_tokens) }}
+          </p>
         </div>
       </div>
     </div>
@@ -93,6 +96,9 @@
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.totalTokens') }}</p>
           <p class="text-xl font-bold text-gray-900 dark:text-white">{{ formatTokens(stats?.total_tokens || 0) }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.input') }}: {{ formatTokens(stats?.total_input_tokens || 0) }} / {{ t('dashboard.output') }}: {{ formatTokens(stats?.total_output_tokens || 0) }}</p>
+          <p class="text-xs text-indigo-600 dark:text-indigo-400">
+            {{ t('dashboard.cacheHitRate') }}: {{ formatCacheHitRate(stats?.total_cache_hit_rate, stats?.total_input_tokens, stats?.total_cache_read_tokens) }}
+          </p>
         </div>
       </div>
     </div>
@@ -159,4 +165,12 @@ const formatTokens = (t: number) => {
   return t.toString()
 }
 const formatDuration = (ms: number) => ms >= 1000 ? `${(ms / 1000).toFixed(2)}s` : `${ms.toFixed(0)}ms`
+const formatCacheHitRate = (rate: number | undefined, inputTokens: number | undefined, cacheReadTokens: number | undefined) => {
+  const input = inputTokens || 0
+  const cacheRead = cacheReadTokens || 0
+  const denominator = input + cacheRead
+  if (denominator <= 0) return '-'
+  const normalized = typeof rate === 'number' && Number.isFinite(rate) ? rate : (cacheRead / denominator)
+  return `${(normalized * 100).toFixed(2)}%`
+}
 </script>
