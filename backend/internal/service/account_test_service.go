@@ -547,7 +547,26 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 				account.RateLimitResetAt = resetAt
 			}
 		}
-		return s.sendErrorAndEnd(c, fmt.Sprintf("API returned %d: %s", resp.StatusCode, string(body)))
+		errMsg := fmt.Sprintf("API returned %d: %s", resp.StatusCode, string(body))
+		if resp.StatusCode == http.StatusUnauthorized && s.accountRepo != nil {
+			upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(body))
+			upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
+			if upstreamMsg != "" {
+				upstreamMsg = truncateForLog([]byte(upstreamMsg), 512)
+			}
+			if deleted, err := tryAutoDeleteDeactivatedOpenAIAccount(ctx, s.accountRepo, account, upstreamMsg, body); deleted {
+				if err != nil {
+					deleteErrMsg := "OpenAI account deactivated (401)"
+					if upstreamMsg != "" {
+						deleteErrMsg = "OpenAI account deactivated (401): " + upstreamMsg
+					}
+					_ = s.accountRepo.SetError(ctx, account.ID, deleteErrMsg)
+				} else {
+					errMsg += " (account auto-deleted)"
+				}
+			}
+		}
+		return s.sendErrorAndEnd(c, errMsg)
 	}
 
 	// Process SSE stream

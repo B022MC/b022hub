@@ -74,6 +74,12 @@ var migrationChecksumCompatibilityRules = map[string]migrationChecksumCompatibil
 			"222b4a09c797c22e5922b6b172327c824f5463aaa8760e4f621bc5c22e2be0f3": {},
 		},
 	},
+	"078_add_group_default_proxy.sql": {
+		fileChecksum: "caa59bbdc4b4eb19094271de6162bd0aaeba668b8dd3a2717b4dfde450af4a42",
+		acceptedDBChecksum: map[string]struct{}{
+			"458de29a33d8c0c06d4b17ecd6239ebda3e3298ac3ce9cdbf298d5a3b5c180b3": {},
+		},
+	},
 }
 
 // ApplyMigrations 将嵌入的 SQL 迁移文件应用到指定的数据库。

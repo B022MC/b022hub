@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -110,6 +111,25 @@ func (s *RateLimitService) CheckErrorPolicy(ctx context.Context, account *Accoun
 // HandleUpstreamError 处理上游错误响应，标记账号状态
 // 返回是否应该停止该账号的调度
 func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Account, statusCode int, headers http.Header, responseBody []byte) (shouldDisable bool) {
+	upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(responseBody))
+	upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
+	if upstreamMsg != "" {
+		upstreamMsg = truncateForLog([]byte(upstreamMsg), 512)
+	}
+
+	if statusCode == http.StatusUnauthorized {
+		if deleted, err := tryAutoDeleteDeactivatedOpenAIAccount(ctx, s.accountRepo, account, upstreamMsg, responseBody); deleted {
+			if err != nil {
+				msg := "OpenAI account deactivated (401)"
+				if upstreamMsg != "" {
+					msg = "OpenAI account deactivated (401): " + upstreamMsg
+				}
+				s.handleAuthError(ctx, account, msg)
+			}
+			return true
+		}
+	}
+
 	customErrorCodesEnabled := account.IsCustomErrorCodesEnabled()
 
 	// 池模式默认不标记本地账号状态；仅当用户显式配置自定义错误码时按本地策略处理。
@@ -131,12 +151,6 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 		if s.tryTempUnschedulable(ctx, account, statusCode, responseBody) {
 			return true
 		}
-	}
-
-	upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(responseBody))
-	upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
-	if upstreamMsg != "" {
-		upstreamMsg = truncateForLog([]byte(upstreamMsg), 512)
 	}
 
 	switch statusCode {
@@ -235,6 +249,45 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 	}
 
 	return shouldDisable
+}
+
+func tryAutoDeleteDeactivatedOpenAIAccount(ctx context.Context, accountRepo AccountRepository, account *Account, upstreamMsg string, responseBody []byte) (bool, error) {
+	if !isOpenAIAccountDeactivated(account, upstreamMsg, responseBody) {
+		return false, nil
+	}
+	if accountRepo == nil {
+		err := errors.New("account repository is nil")
+		slog.Warn("openai_account_auto_delete_failed", "account_id", accountIDForLog(account), "error", err)
+		return true, err
+	}
+	if err := accountRepo.Delete(ctx, account.ID); err != nil {
+		slog.Warn("openai_account_auto_delete_failed", "account_id", account.ID, "error", err)
+		return true, err
+	}
+	slog.Warn("openai_account_auto_deleted", "account_id", account.ID, "platform", account.Platform, "reason", "account_deactivated")
+	return true, nil
+}
+
+func isOpenAIAccountDeactivated(account *Account, upstreamMsg string, responseBody []byte) bool {
+	if account == nil {
+		return false
+	}
+	if account.Platform != PlatformOpenAI && account.Platform != PlatformSora {
+		return false
+	}
+	if strings.EqualFold(strings.TrimSpace(extractUpstreamErrorCode(responseBody)), "account_deactivated") {
+		return true
+	}
+	msg := strings.ToLower(strings.TrimSpace(upstreamMsg))
+	return strings.Contains(msg, "account has been deactivated") ||
+		strings.Contains(msg, "account deactivated")
+}
+
+func accountIDForLog(account *Account) int64 {
+	if account == nil {
+		return 0
+	}
+	return account.ID
 }
 
 // PreCheckUsage proactively checks local quota before dispatching a request.

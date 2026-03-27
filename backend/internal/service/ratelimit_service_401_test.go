@@ -18,6 +18,8 @@ type rateLimitAccountRepoStub struct {
 	setErrorCalls int
 	tempCalls     int
 	lastErrorMsg  string
+	deleteCalls   int
+	deleteErr     error
 }
 
 func (r *rateLimitAccountRepoStub) SetError(ctx context.Context, id int64, errorMsg string) error {
@@ -29,6 +31,11 @@ func (r *rateLimitAccountRepoStub) SetError(ctx context.Context, id int64, error
 func (r *rateLimitAccountRepoStub) SetTempUnschedulable(ctx context.Context, id int64, until time.Time, reason string) error {
 	r.tempCalls++
 	return nil
+}
+
+func (r *rateLimitAccountRepoStub) Delete(ctx context.Context, id int64) error {
+	r.deleteCalls++
+	return r.deleteErr
 }
 
 type tokenCacheInvalidatorRecorder struct {
@@ -129,4 +136,84 @@ func TestRateLimitService_HandleUpstreamError_NonOAuth401(t *testing.T) {
 	require.True(t, shouldDisable)
 	require.Equal(t, 1, repo.setErrorCalls)
 	require.Empty(t, invalidator.accounts)
+}
+
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeletesAccount(t *testing.T) {
+	repo := &rateLimitAccountRepoStub{}
+	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
+	account := &Account{
+		ID:       103,
+		Platform: PlatformOpenAI,
+		Type:     AccountTypeOAuth,
+	}
+
+	body := []byte(`{"error":{"message":"Your OpenAI account has been deactivated, please check your email for more information.","type":"invalid_request_error","code":"account_deactivated","param":null},"status":401}`)
+	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
+
+	require.True(t, shouldDisable)
+	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 0, repo.tempCalls)
+	require.Equal(t, 0, repo.setErrorCalls)
+}
+
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeleteFailureFallsBackToSetError(t *testing.T) {
+	repo := &rateLimitAccountRepoStub{deleteErr: errors.New("delete failed")}
+	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
+	account := &Account{
+		ID:       104,
+		Platform: PlatformOpenAI,
+		Type:     AccountTypeAPIKey,
+	}
+
+	body := []byte(`{"error":{"message":"Your OpenAI account has been deactivated, please check your email for more information.","type":"invalid_request_error","code":"account_deactivated","param":null},"status":401}`)
+	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
+
+	require.True(t, shouldDisable)
+	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 0, repo.tempCalls)
+	require.Equal(t, 1, repo.setErrorCalls)
+	require.Contains(t, repo.lastErrorMsg, "OpenAI account deactivated")
+}
+
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeletesPoolModeAccount(t *testing.T) {
+	repo := &rateLimitAccountRepoStub{}
+	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
+	account := &Account{
+		ID:       105,
+		Platform: PlatformOpenAI,
+		Type:     AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"pool_mode": true,
+		},
+	}
+
+	body := []byte(`{"error":{"message":"Your OpenAI account has been deactivated, please check your email for more information.","type":"invalid_request_error","code":"account_deactivated","param":null},"status":401}`)
+	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
+
+	require.True(t, shouldDisable)
+	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 0, repo.tempCalls)
+	require.Equal(t, 0, repo.setErrorCalls)
+}
+
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeletesWhenCustomErrorCodesSkip401(t *testing.T) {
+	repo := &rateLimitAccountRepoStub{}
+	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
+	account := &Account{
+		ID:       106,
+		Platform: PlatformOpenAI,
+		Type:     AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"custom_error_codes_enabled": true,
+			"custom_error_codes":         []any{float64(429)},
+		},
+	}
+
+	body := []byte(`{"error":{"message":"Your OpenAI account has been deactivated, please check your email for more information.","type":"invalid_request_error","code":"account_deactivated","param":null},"status":401}`)
+	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
+
+	require.True(t, shouldDisable)
+	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 0, repo.tempCalls)
+	require.Equal(t, 0, repo.setErrorCalls)
 }
