@@ -971,6 +971,18 @@ export interface AdminDataImportResult {
   errors?: AdminDataImportError[]
 }
 
+export type AdminProxyImportMode = 'file' | 'subscription'
+
+export type AdminProxyImportRequest =
+  | {
+      data: AdminDataPayload
+      subscription_url?: never
+    }
+  | {
+      subscription_url: string
+      data?: never
+    }
+
 // ==================== Usage & Redeem Types ====================
 
 export type RedeemCodeType = 'balance' | 'concurrency' | 'subscription' | 'invitation'

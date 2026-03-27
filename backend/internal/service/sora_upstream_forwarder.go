@@ -63,10 +63,7 @@ func (s *SoraGatewayService) forwardToUpstream(
 	logger.LegacyPrintf("service.sora", "[ForwardUpstream] account=%d url=%s", account.ID, upstreamURL)
 
 	// 获取代理 URL
-	proxyURL := ""
-	if account.ProxyID != nil && account.Proxy != nil {
-		proxyURL = account.Proxy.URL()
-	}
+	proxyURL := ResolveUpstreamProxyURL(ctx, account)
 
 	// 发送请求
 	resp, err := s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)

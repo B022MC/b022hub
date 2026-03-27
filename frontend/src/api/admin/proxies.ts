@@ -12,7 +12,8 @@ import type {
   UpdateProxyRequest,
   PaginatedResponse,
   AdminDataPayload,
-  AdminDataImportResult
+  AdminDataImportResult,
+  AdminProxyImportRequest
 } from '@/types'
 
 /**
@@ -242,9 +243,7 @@ export async function exportData(options?: {
   return data
 }
 
-export async function importData(payload: {
-  data: AdminDataPayload
-}): Promise<AdminDataImportResult> {
+export async function importData(payload: AdminProxyImportRequest): Promise<AdminDataImportResult> {
   const { data } = await apiClient.post<AdminDataImportResult>('/admin/proxies/data', payload)
   return data
 }

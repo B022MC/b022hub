@@ -28,6 +28,7 @@ import (
 // OpenAIGatewayHandler handles OpenAI API gateway requests
 type OpenAIGatewayHandler struct {
 	gatewayService          *service.OpenAIGatewayService
+	subscriptionProxyRouter *service.SubscriptionRequestProxyRouter
 	billingCacheService     *service.BillingCacheService
 	apiKeyService           *service.APIKeyService
 	usageRecordWorkerPool   *service.UsageRecordWorkerPool
@@ -50,6 +51,7 @@ func resolveOpenAIForwardDefaultMappedModel(apiKey *service.APIKey, fallbackMode
 // NewOpenAIGatewayHandler creates a new OpenAIGatewayHandler
 func NewOpenAIGatewayHandler(
 	gatewayService *service.OpenAIGatewayService,
+	subscriptionProxyRouter *service.SubscriptionRequestProxyRouter,
 	concurrencyService *service.ConcurrencyService,
 	billingCacheService *service.BillingCacheService,
 	apiKeyService *service.APIKeyService,
@@ -67,6 +69,7 @@ func NewOpenAIGatewayHandler(
 	}
 	return &OpenAIGatewayHandler{
 		gatewayService:          gatewayService,
+		subscriptionProxyRouter: subscriptionProxyRouter,
 		billingCacheService:     billingCacheService,
 		apiKeyService:           apiKeyService,
 		usageRecordWorkerPool:   usageRecordWorkerPool,
@@ -216,6 +219,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 		h.handleStreamingAwareError(c, status, code, message, streamStarted)
 		return
 	}
+	bindSubscriptionRequestProxy(c, h.subscriptionProxyRouter, subscription)
 
 	// Generate session hash (header first; fallback to prompt_cache_key)
 	sessionHash := h.gatewayService.GenerateSessionHash(c, sessionHashBody)
@@ -570,6 +574,7 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 		h.anthropicStreamingAwareError(c, status, code, message, streamStarted)
 		return
 	}
+	bindSubscriptionRequestProxy(c, h.subscriptionProxyRouter, subscription)
 
 	sessionHash := h.gatewayService.GenerateSessionHash(c, body)
 	promptCacheKey := h.gatewayService.ExtractSessionID(c, body)
@@ -1130,6 +1135,8 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 		closeOpenAIClientWS(wsConn, coderws.StatusPolicyViolation, "billing check failed")
 		return
 	}
+	bindSubscriptionRequestProxy(c, h.subscriptionProxyRouter, subscription)
+	ctx = c.Request.Context()
 
 	sessionHash := h.gatewayService.GenerateSessionHashWithFallback(
 		c,

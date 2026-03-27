@@ -1036,10 +1036,7 @@ func (s *AntigravityGatewayService) TestConnection(ctx context.Context, account 
 	}
 
 	// 代理 URL
-	proxyURL := ""
-	if account.ProxyID != nil && account.Proxy != nil {
-		proxyURL = account.Proxy.URL()
-	}
+	proxyURL := ResolveUpstreamProxyURL(ctx, account)
 
 	// 复用 antigravityRetryLoop：完整的重试 / credits overages / 智能重试
 	prefix := fmt.Sprintf("[antigravity-Test] account=%d(%s)", account.ID, account.Name)
@@ -1369,10 +1366,7 @@ func (s *AntigravityGatewayService) Forward(ctx context.Context, c *gin.Context,
 	projectID := strings.TrimSpace(account.GetCredential("project_id"))
 
 	// 代理 URL
-	proxyURL := ""
-	if account.ProxyID != nil && account.Proxy != nil {
-		proxyURL = account.Proxy.URL()
-	}
+	proxyURL := ResolveUpstreamProxyURL(ctx, account)
 
 	// 获取转换选项
 	// Antigravity 上游要求必须包含身份提示词，否则会返回 429
@@ -2114,10 +2108,7 @@ func (s *AntigravityGatewayService) ForwardGemini(ctx context.Context, c *gin.Co
 	projectID := strings.TrimSpace(account.GetCredential("project_id"))
 
 	// 代理 URL
-	proxyURL := ""
-	if account.ProxyID != nil && account.Proxy != nil {
-		proxyURL = account.Proxy.URL()
-	}
+	proxyURL := ResolveUpstreamProxyURL(ctx, account)
 
 	// Antigravity 上游要求必须包含身份提示词，注入到请求中
 	injectedBody, err := injectIdentityPatchToGeminiRequest(body)
@@ -4227,10 +4218,7 @@ func (s *AntigravityGatewayService) ForwardUpstream(ctx context.Context, c *gin.
 	}
 
 	// 代理 URL
-	proxyURL := ""
-	if account.ProxyID != nil && account.Proxy != nil {
-		proxyURL = account.Proxy.URL()
-	}
+	proxyURL := ResolveUpstreamProxyURL(ctx, account)
 
 	// 发送请求
 	resp, err := s.httpUpstream.Do(req, proxyURL, account.ID, account.Concurrency)

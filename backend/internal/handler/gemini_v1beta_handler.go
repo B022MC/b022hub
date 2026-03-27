@@ -50,6 +50,8 @@ func (h *GatewayHandler) GeminiV1BetaListModels(c *gin.Context) {
 		c.JSON(http.StatusOK, antigravity.FallbackGeminiModelsList())
 		return
 	}
+	subscription, _ := middleware.GetSubscriptionFromContext(c)
+	bindSubscriptionRequestProxy(c, h.subscriptionProxyRouter, subscription)
 
 	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
 	if err != nil {
@@ -102,6 +104,8 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 		c.JSON(http.StatusOK, antigravity.FallbackGeminiModel(modelName))
 		return
 	}
+	subscription, _ := middleware.GetSubscriptionFromContext(c)
+	bindSubscriptionRequestProxy(c, h.subscriptionProxyRouter, subscription)
 
 	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
 	if err != nil {
@@ -237,6 +241,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 		googleError(c, status, message)
 		return
 	}
+	bindSubscriptionRequestProxy(c, h.subscriptionProxyRouter, subscription)
 
 	// 3) select account (sticky session based on request body)
 	// 优先使用 Gemini CLI 的会话标识（privileged-user-id + tmp 目录哈希）

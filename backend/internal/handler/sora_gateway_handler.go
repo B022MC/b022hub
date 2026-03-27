@@ -31,22 +31,24 @@ import (
 
 // SoraGatewayHandler handles Sora chat completions requests
 type SoraGatewayHandler struct {
-	gatewayService        *service.GatewayService
-	soraGatewayService    *service.SoraGatewayService
-	billingCacheService   *service.BillingCacheService
-	usageRecordWorkerPool *service.UsageRecordWorkerPool
-	concurrencyHelper     *ConcurrencyHelper
-	maxAccountSwitches    int
-	streamMode            string
-	soraTLSEnabled        bool
-	soraMediaSigningKey   string
-	soraMediaRoot         string
+	gatewayService          *service.GatewayService
+	soraGatewayService      *service.SoraGatewayService
+	subscriptionProxyRouter *service.SubscriptionRequestProxyRouter
+	billingCacheService     *service.BillingCacheService
+	usageRecordWorkerPool   *service.UsageRecordWorkerPool
+	concurrencyHelper       *ConcurrencyHelper
+	maxAccountSwitches      int
+	streamMode              string
+	soraTLSEnabled          bool
+	soraMediaSigningKey     string
+	soraMediaRoot           string
 }
 
 // NewSoraGatewayHandler creates a new SoraGatewayHandler
 func NewSoraGatewayHandler(
 	gatewayService *service.GatewayService,
 	soraGatewayService *service.SoraGatewayService,
+	subscriptionProxyRouter *service.SubscriptionRequestProxyRouter,
 	concurrencyService *service.ConcurrencyService,
 	billingCacheService *service.BillingCacheService,
 	usageRecordWorkerPool *service.UsageRecordWorkerPool,
@@ -73,16 +75,17 @@ func NewSoraGatewayHandler(
 		}
 	}
 	return &SoraGatewayHandler{
-		gatewayService:        gatewayService,
-		soraGatewayService:    soraGatewayService,
-		billingCacheService:   billingCacheService,
-		usageRecordWorkerPool: usageRecordWorkerPool,
-		concurrencyHelper:     NewConcurrencyHelper(concurrencyService, SSEPingFormatComment, pingInterval),
-		maxAccountSwitches:    maxAccountSwitches,
-		streamMode:            strings.ToLower(streamMode),
-		soraTLSEnabled:        soraTLSEnabled,
-		soraMediaSigningKey:   signKey,
-		soraMediaRoot:         mediaRoot,
+		gatewayService:          gatewayService,
+		soraGatewayService:      soraGatewayService,
+		subscriptionProxyRouter: subscriptionProxyRouter,
+		billingCacheService:     billingCacheService,
+		usageRecordWorkerPool:   usageRecordWorkerPool,
+		concurrencyHelper:       NewConcurrencyHelper(concurrencyService, SSEPingFormatComment, pingInterval),
+		maxAccountSwitches:      maxAccountSwitches,
+		streamMode:              strings.ToLower(streamMode),
+		soraTLSEnabled:          soraTLSEnabled,
+		soraMediaSigningKey:     signKey,
+		soraMediaRoot:           mediaRoot,
 	}
 }
 
@@ -214,6 +217,7 @@ func (h *SoraGatewayHandler) ChatCompletions(c *gin.Context) {
 		h.handleStreamingAwareError(c, status, code, message, streamStarted)
 		return
 	}
+	bindSubscriptionRequestProxy(c, h.subscriptionProxyRouter, subscription)
 
 	sessionHash := generateOpenAISessionHash(c, body)
 

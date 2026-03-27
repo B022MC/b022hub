@@ -186,3 +186,57 @@ func TestProxyImportDataReusesAndTriggersLatencyProbe(t *testing.T) {
 		return len(adminSvc.testedProxyIDs) == 1
 	}, time.Second, 10*time.Millisecond)
 }
+
+func TestProxyImportDataSupportsClashSubscriptionURL(t *testing.T) {
+	router, adminSvc := setupProxyDataRouter()
+
+	subscriptionServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/yaml")
+		_, _ = w.Write([]byte(`
+proxies:
+  - name: http-a
+    type: http
+    server: 127.0.0.10
+    port: 8080
+    username: demo
+    password: secret
+  - name: socks-a
+    type: socks5
+    server: 127.0.0.11
+    port: 1080
+  - name: ignored-ss
+    type: ss
+    server: 127.0.0.12
+    port: 9000
+    cipher: aes-256-gcm
+    password: test
+`))
+	}))
+	defer subscriptionServer.Close()
+
+	payload := map[string]any{
+		"subscription_url": subscriptionServer.URL,
+	}
+
+	body, _ := json.Marshal(payload)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/proxies/data", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var resp proxyImportResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.Equal(t, 0, resp.Code)
+	require.Equal(t, 2, resp.Data.ProxyCreated)
+	require.Equal(t, 0, resp.Data.ProxyReused)
+	require.Equal(t, 1, resp.Data.ProxyFailed)
+	require.Len(t, resp.Data.Errors, 1)
+	require.Contains(t, resp.Data.Errors[0].Message, "http/https/socks5/socks5h")
+
+	adminSvc.mu.Lock()
+	defer adminSvc.mu.Unlock()
+	require.Len(t, adminSvc.createdProxies, 2)
+	require.Equal(t, "http", adminSvc.createdProxies[0].Protocol)
+	require.Equal(t, "socks5", adminSvc.createdProxies[1].Protocol)
+}

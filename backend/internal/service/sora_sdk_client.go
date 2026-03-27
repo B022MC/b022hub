@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DouDOU-start/go-sora2api/sora"
 	"github.com/B022MC/b022hub/internal/config"
 	"github.com/B022MC/b022hub/internal/pkg/logger"
 	openaioauth "github.com/B022MC/b022hub/internal/pkg/openai"
 	"github.com/B022MC/b022hub/internal/util/logredact"
+	"github.com/DouDOU-start/go-sora2api/sora"
 	"github.com/tidwall/gjson"
 )
 
@@ -70,7 +70,7 @@ func (c *SoraSDKClient) PreflightCheck(ctx context.Context, account *Account, re
 	if err != nil {
 		return err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (c *SoraSDKClient) UploadImage(ctx context.Context, account *Account, data 
 	if err != nil {
 		return "", err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -132,7 +132,7 @@ func (c *SoraSDKClient) CreateImageTask(ctx context.Context, account *Account, r
 	if err != nil {
 		return "", err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -157,7 +157,7 @@ func (c *SoraSDKClient) CreateVideoTask(ctx context.Context, account *Account, r
 	if err != nil {
 		return "", err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -267,7 +267,7 @@ func (c *SoraSDKClient) CreateStoryboardTask(ctx context.Context, account *Accou
 	if err != nil {
 		return "", err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -300,7 +300,7 @@ func (c *SoraSDKClient) UploadCharacterVideo(ctx context.Context, account *Accou
 	if err != nil {
 		return "", err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -316,7 +316,7 @@ func (c *SoraSDKClient) GetCameoStatus(ctx context.Context, account *Account, ca
 	if err != nil {
 		return nil, err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +333,7 @@ func (c *SoraSDKClient) GetCameoStatus(ctx context.Context, account *Account, ca
 }
 
 func (c *SoraSDKClient) DownloadCharacterImage(ctx context.Context, account *Account, imageURL string) ([]byte, error) {
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return nil, err
 	}
@@ -352,7 +352,7 @@ func (c *SoraSDKClient) UploadCharacterImage(ctx context.Context, account *Accou
 	if err != nil {
 		return "", err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -368,7 +368,7 @@ func (c *SoraSDKClient) FinalizeCharacter(ctx context.Context, account *Account,
 	if err != nil {
 		return "", err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -384,7 +384,7 @@ func (c *SoraSDKClient) SetCharacterPublic(ctx context.Context, account *Account
 	if err != nil {
 		return err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -399,7 +399,7 @@ func (c *SoraSDKClient) DeleteCharacter(ctx context.Context, account *Account, c
 	if err != nil {
 		return err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -414,7 +414,7 @@ func (c *SoraSDKClient) PostVideoForWatermarkFree(ctx context.Context, account *
 	if err != nil {
 		return "", err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -434,7 +434,7 @@ func (c *SoraSDKClient) DeletePost(ctx context.Context, account *Account, postID
 	if err != nil {
 		return err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -469,7 +469,7 @@ func (c *SoraSDKClient) GetWatermarkFreeURLCustom(ctx context.Context, account *
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	proxyURL := c.resolveProxyURL(account)
+	proxyURL := c.resolveProxyURL(ctx, account)
 	accountID := int64(0)
 	accountConcurrency := 0
 	if account != nil {
@@ -505,7 +505,7 @@ func (c *SoraSDKClient) EnhancePrompt(ctx context.Context, account *Account, pro
 	if err != nil {
 		return "", err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -527,7 +527,7 @@ func (c *SoraSDKClient) GetImageTask(ctx context.Context, account *Account, task
 	if err != nil {
 		return nil, err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return nil, err
 	}
@@ -562,7 +562,7 @@ func (c *SoraSDKClient) GetVideoTask(ctx context.Context, account *Account, task
 	if err != nil {
 		return nil, err
 	}
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return nil, err
 	}
@@ -664,7 +664,7 @@ func (c *SoraSDKClient) getVideoTaskDownloadURLs(ctx context.Context, account *A
 	}
 
 	// 兼容旧 SDK 的兜底逻辑
-	sdkClient, sdkErr := c.getSDKClient(account)
+	sdkClient, sdkErr := c.getSDKClient(ctx, account)
 	if sdkErr != nil {
 		return nil, sdkErr
 	}
@@ -713,7 +713,7 @@ func (c *SoraSDKClient) doSoraBackendJSON(
 		req.Header.Set("openai-sentinel-token", sentinelToken)
 	}
 
-	proxyURL := c.resolveProxyURL(account)
+	proxyURL := c.resolveProxyURL(ctx, account)
 	accountID := int64(0)
 	accountConcurrency := 0
 	if account != nil {
@@ -745,8 +745,8 @@ func (c *SoraSDKClient) doSoraBackendJSON(
 // --- 内部方法 ---
 
 // getSDKClient 获取或创建指定代理的 SDK 客户端实例
-func (c *SoraSDKClient) getSDKClient(account *Account) (*sora.Client, error) {
-	proxyURL := c.resolveProxyURL(account)
+func (c *SoraSDKClient) getSDKClient(ctx context.Context, account *Account) (*sora.Client, error) {
+	proxyURL := c.resolveProxyURL(ctx, account)
 	if v, ok := c.sdkClients.Load(proxyURL); ok {
 		if cli, ok2 := v.(*sora.Client); ok2 {
 			return cli, nil
@@ -763,11 +763,8 @@ func (c *SoraSDKClient) getSDKClient(account *Account) (*sora.Client, error) {
 	return client, nil
 }
 
-func (c *SoraSDKClient) resolveProxyURL(account *Account) string {
-	if account == nil || account.ProxyID == nil || account.Proxy == nil {
-		return ""
-	}
-	return strings.TrimSpace(account.Proxy.URL())
+func (c *SoraSDKClient) resolveProxyURL(ctx context.Context, account *Account) string {
+	return ResolveUpstreamProxyURL(ctx, account)
 }
 
 // getAccessToken 获取账号的 access_token，支持多种 token 来源和自动刷新。
@@ -837,7 +834,7 @@ func (c *SoraSDKClient) recoverAccessToken(ctx context.Context, account *Account
 		return "", errors.New("session_token/refresh_token not found")
 	}
 
-	sdkClient, err := c.getSDKClient(account)
+	sdkClient, err := c.getSDKClient(ctx, account)
 	if err != nil {
 		return "", err
 	}
@@ -891,7 +888,7 @@ func (c *SoraSDKClient) exchangeSessionToken(ctx context.Context, account *Accou
 	req.Header.Set("Referer", "https://sora.chatgpt.com/")
 	req.Header.Set("User-Agent", "Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)")
 
-	proxyURL := c.resolveProxyURL(account)
+	proxyURL := c.resolveProxyURL(ctx, account)
 	accountID := int64(0)
 	accountConcurrency := 0
 	if account != nil {

@@ -17,6 +17,28 @@
       </div>
 
       <div>
+        <label class="input-label">{{ t('admin.proxies.dataImportSource') }}</label>
+        <div class="grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1 dark:bg-dark-800">
+          <button
+            type="button"
+            class="rounded-lg px-3 py-2 text-sm font-medium transition"
+            :class="modeButtonClass('file')"
+            @click="importMode = 'file'"
+          >
+            {{ t('admin.proxies.dataImportModeFile') }}
+          </button>
+          <button
+            type="button"
+            class="rounded-lg px-3 py-2 text-sm font-medium transition"
+            :class="modeButtonClass('subscription')"
+            @click="importMode = 'subscription'"
+          >
+            {{ t('admin.proxies.dataImportModeSubscription') }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="isFileMode">
         <label class="input-label">{{ t('admin.proxies.dataImportFile') }}</label>
         <div
           class="flex items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 dark:border-dark-600 dark:bg-dark-800"
@@ -38,6 +60,19 @@
           accept="application/json,.json"
           @change="handleFileChange"
         />
+      </div>
+
+      <div v-else class="space-y-2">
+        <label class="input-label">{{ t('admin.proxies.dataImportSubscriptionUrl') }}</label>
+        <input
+          v-model.trim="subscriptionURL"
+          type="url"
+          class="input"
+          :placeholder="t('admin.proxies.dataImportSubscriptionPlaceholder')"
+        />
+        <p class="input-hint">
+          {{ t('admin.proxies.dataImportSubscriptionHint') }}
+        </p>
       </div>
 
       <div
@@ -85,12 +120,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import { adminAPI } from '@/api/admin'
 import { useAppStore } from '@/stores/app'
-import type { AdminDataImportResult } from '@/types'
+import type { AdminDataImportResult, AdminProxyImportMode, AdminProxyImportRequest } from '@/types'
 
 interface Props {
   show: boolean
@@ -107,27 +142,43 @@ const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const appStore = useAppStore()
 
-const importing = ref(false)
+const importing = shallowRef(false)
+const importMode = shallowRef<AdminProxyImportMode>('file')
+const subscriptionURL = shallowRef('')
 const file = ref<File | null>(null)
 const result = ref<AdminDataImportResult | null>(null)
 
 const fileInput = ref<HTMLInputElement | null>(null)
+const isFileMode = computed(() => importMode.value === 'file')
 const fileName = computed(() => file.value?.name || '')
-
 const errorItems = computed(() => result.value?.errors || [])
 
 watch(
   () => props.show,
   (open) => {
-    if (open) {
-      file.value = null
-      result.value = null
-      if (fileInput.value) {
-        fileInput.value.value = ''
-      }
+    if (!open) {
+      return
     }
+    resetForm()
   }
 )
+
+const resetForm = () => {
+  importMode.value = 'file'
+  subscriptionURL.value = ''
+  file.value = null
+  result.value = null
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
+const modeButtonClass = (mode: AdminProxyImportMode) => {
+  if (importMode.value === mode) {
+    return 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
+  }
+  return 'text-gray-500 hover:text-gray-700 dark:text-dark-300 dark:hover:text-white'
+}
 
 const openFilePicker = () => {
   fileInput.value?.click()
@@ -161,19 +212,38 @@ const readFileAsText = async (sourceFile: File): Promise<string> => {
   })
 }
 
-const handleImport = async () => {
-  if (!file.value) {
-    appStore.showError(t('admin.proxies.dataImportSelectFile'))
-    return
+const buildImportPayload = async (): Promise<AdminProxyImportRequest | null> => {
+  if (isFileMode.value) {
+    if (!file.value) {
+      appStore.showError(t('admin.proxies.dataImportSelectFile'))
+      return null
+    }
+
+    const text = await readFileAsText(file.value)
+    return {
+      data: JSON.parse(text)
+    }
   }
 
+  if (!subscriptionURL.value) {
+    appStore.showError(t('admin.proxies.dataImportSelectSubscriptionUrl'))
+    return null
+  }
+
+  return {
+    subscription_url: subscriptionURL.value
+  }
+}
+
+const handleImport = async () => {
   importing.value = true
   try {
-    const text = await readFileAsText(file.value)
-    const dataPayload = JSON.parse(text)
+    const payload = await buildImportPayload()
+    if (!payload) {
+      return
+    }
 
-    const res = await adminAPI.proxies.importData({ data: dataPayload })
-
+    const res = await adminAPI.proxies.importData(payload)
     result.value = res
 
     const msgParams: Record<string, unknown> = {

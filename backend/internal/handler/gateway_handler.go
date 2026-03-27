@@ -39,6 +39,7 @@ type GatewayHandler struct {
 	gatewayService            *service.GatewayService
 	geminiCompatService       *service.GeminiMessagesCompatService
 	antigravityGatewayService *service.AntigravityGatewayService
+	subscriptionProxyRouter   *service.SubscriptionRequestProxyRouter
 	userService               *service.UserService
 	billingCacheService       *service.BillingCacheService
 	usageService              *service.UsageService
@@ -58,6 +59,7 @@ func NewGatewayHandler(
 	gatewayService *service.GatewayService,
 	geminiCompatService *service.GeminiMessagesCompatService,
 	antigravityGatewayService *service.AntigravityGatewayService,
+	subscriptionProxyRouter *service.SubscriptionRequestProxyRouter,
 	userService *service.UserService,
 	concurrencyService *service.ConcurrencyService,
 	billingCacheService *service.BillingCacheService,
@@ -92,6 +94,7 @@ func NewGatewayHandler(
 		gatewayService:            gatewayService,
 		geminiCompatService:       geminiCompatService,
 		antigravityGatewayService: antigravityGatewayService,
+		subscriptionProxyRouter:   subscriptionProxyRouter,
 		userService:               userService,
 		billingCacheService:       billingCacheService,
 		usageService:              usageService,
@@ -243,6 +246,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 		h.handleStreamingAwareError(c, status, code, message, streamStarted)
 		return
 	}
+	bindSubscriptionRequestProxy(c, h.subscriptionProxyRouter, subscription)
 
 	// 计算粘性会话hash
 	parsedReq.SessionContext = &service.SessionContext{
@@ -1407,6 +1411,7 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 		h.errorResponse(c, status, code, message)
 		return
 	}
+	bindSubscriptionRequestProxy(c, h.subscriptionProxyRouter, subscription)
 
 	// 计算粘性会话 hash
 	parsedReq.SessionContext = &service.SessionContext{
