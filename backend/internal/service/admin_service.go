@@ -142,6 +142,7 @@ type CreateGroupInput struct {
 	SoraVideoPricePerRequest   *float64
 	SoraVideoPricePerRequestHD *float64
 	ClaudeCodeOnly             bool   // 仅允许 Claude Code 客户端
+	DefaultProxyID             *int64 // 分组默认代理 ID
 	FallbackGroupID            *int64 // 降级分组 ID
 	// 无效请求兜底分组 ID（仅 anthropic 平台使用）
 	FallbackGroupIDOnInvalidRequest *int64
@@ -181,6 +182,7 @@ type UpdateGroupInput struct {
 	SoraVideoPricePerRequest   *float64
 	SoraVideoPricePerRequestHD *float64
 	ClaudeCodeOnly             *bool  // 仅允许 Claude Code 客户端
+	DefaultProxyID             *int64 // 分组默认代理 ID
 	FallbackGroupID            *int64 // 降级分组 ID
 	// 无效请求兜底分组 ID（仅 anthropic 平台使用）
 	FallbackGroupIDOnInvalidRequest *int64
@@ -855,6 +857,12 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 	soraImagePrice540 := normalizePrice(input.SoraImagePrice540)
 	soraVideoPrice := normalizePrice(input.SoraVideoPricePerRequest)
 	soraVideoPriceHD := normalizePrice(input.SoraVideoPricePerRequestHD)
+	defaultProxyID := normalizeNullableID(input.DefaultProxyID)
+	if defaultProxyID != nil {
+		if err := s.validateProxyIDExists(ctx, *defaultProxyID); err != nil {
+			return nil, err
+		}
+	}
 
 	// 校验降级分组
 	if input.FallbackGroupID != nil {
@@ -930,6 +938,7 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		SoraVideoPricePerRequest:        soraVideoPrice,
 		SoraVideoPricePerRequestHD:      soraVideoPriceHD,
 		ClaudeCodeOnly:                  input.ClaudeCodeOnly,
+		DefaultProxyID:                  defaultProxyID,
 		FallbackGroupID:                 input.FallbackGroupID,
 		FallbackGroupIDOnInvalidRequest: fallbackOnInvalidRequest,
 		ModelRouting:                    input.ModelRouting,
@@ -949,6 +958,9 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 			return nil, fmt.Errorf("failed to bind accounts to new group: %w", err)
 		}
 		group.AccountCount = int64(len(accountIDsToCopy))
+		if err := s.applyDefaultProxyToAccountsIfMissing(ctx, accountIDsToCopy, group.DefaultProxyID); err != nil {
+			return nil, err
+		}
 	}
 
 	return group, nil
@@ -968,6 +980,13 @@ func normalizePrice(price *float64) *float64 {
 		return nil
 	}
 	return price
+}
+
+func normalizeNullableID(id *int64) *int64 {
+	if id == nil || *id <= 0 {
+		return nil
+	}
+	return id
 }
 
 // validateFallbackGroup 校验降级分组的有效性
@@ -1103,6 +1122,15 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 	if input.ClaudeCodeOnly != nil {
 		group.ClaudeCodeOnly = *input.ClaudeCodeOnly
 	}
+	if input.DefaultProxyID != nil {
+		defaultProxyID := normalizeNullableID(input.DefaultProxyID)
+		if defaultProxyID != nil {
+			if err := s.validateProxyIDExists(ctx, *defaultProxyID); err != nil {
+				return nil, err
+			}
+		}
+		group.DefaultProxyID = defaultProxyID
+	}
 	if input.FallbackGroupID != nil {
 		// 校验降级分组
 		if *input.FallbackGroupID > 0 {
@@ -1202,6 +1230,9 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 			if err := s.groupRepo.BindAccountsToGroup(ctx, id, accountIDsToCopy); err != nil {
 				return nil, fmt.Errorf("failed to bind accounts to group: %w", err)
 			}
+		}
+		if err := s.applyDefaultProxyToAccountsIfMissing(ctx, accountIDsToCopy, group.DefaultProxyID); err != nil {
+			return nil, err
 		}
 	}
 
@@ -1507,6 +1538,15 @@ func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccou
 		}
 	}
 
+	proxyID := input.ProxyID
+	if proxyID == nil {
+		resolvedProxyID, err := resolveGroupDefaultProxyID(ctx, s.groupRepo, groupIDs)
+		if err != nil {
+			return nil, err
+		}
+		proxyID = resolvedProxyID
+	}
+
 	// Sora apikey 账号的 base_url 必填校验
 	if input.Platform == PlatformSora && input.Type == AccountTypeAPIKey {
 		baseURL, _ := input.Credentials["base_url"].(string)
@@ -1526,7 +1566,7 @@ func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccou
 		Type:        input.Type,
 		Credentials: input.Credentials,
 		Extra:       input.Extra,
-		ProxyID:     input.ProxyID,
+		ProxyID:     proxyID,
 		Concurrency: input.Concurrency,
 		Priority:    input.Priority,
 		Status:      StatusActive,
@@ -1705,6 +1745,17 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 		}
 	}
 
+	if input.GroupIDs != nil && input.ProxyID == nil && account.ProxyID == nil {
+		resolvedProxyID, err := resolveGroupDefaultProxyID(ctx, s.groupRepo, *input.GroupIDs)
+		if err != nil {
+			return nil, err
+		}
+		if resolvedProxyID != nil {
+			account.ProxyID = resolvedProxyID
+			account.Proxy = nil
+		}
+	}
+
 	if err := s.accountRepo.Update(ctx, account); err != nil {
 		return nil, err
 	}
@@ -1777,6 +1828,15 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 		}
 	}
 
+	var inheritedProxyID *int64
+	if input.GroupIDs != nil && input.ProxyID == nil {
+		resolvedProxyID, err := resolveGroupDefaultProxyID(ctx, s.groupRepo, *input.GroupIDs)
+		if err != nil {
+			return nil, err
+		}
+		inheritedProxyID = resolvedProxyID
+	}
+
 	// Prepare bulk updates for columns and JSONB fields.
 	repoUpdates := AccountBulkUpdate{
 		Credentials: input.Credentials,
@@ -1830,6 +1890,30 @@ func (s *adminServiceImpl) BulkUpdateAccounts(ctx context.Context, input *BulkUp
 				result.FailedIDs = append(result.FailedIDs, accountID)
 				result.Results = append(result.Results, entry)
 				continue
+			}
+		}
+
+		if inheritedProxyID != nil {
+			account, err := s.accountRepo.GetByID(ctx, accountID)
+			if err != nil {
+				entry.Success = false
+				entry.Error = err.Error()
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, accountID)
+				result.Results = append(result.Results, entry)
+				continue
+			}
+			if account.ProxyID == nil {
+				account.ProxyID = inheritedProxyID
+				account.Proxy = nil
+				if err := s.accountRepo.Update(ctx, account); err != nil {
+					entry.Success = false
+					entry.Error = err.Error()
+					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, accountID)
+					result.Results = append(result.Results, entry)
+					continue
+				}
 			}
 		}
 
@@ -2528,6 +2612,43 @@ func (s *adminServiceImpl) validateGroupIDsExist(ctx context.Context, groupIDs [
 			return fmt.Errorf("get group: %w", err)
 		}
 	}
+	return nil
+}
+
+func (s *adminServiceImpl) validateProxyIDExists(ctx context.Context, proxyID int64) error {
+	if proxyID <= 0 {
+		return nil
+	}
+	if s.proxyRepo == nil {
+		return errors.New("proxy repository not configured")
+	}
+	if _, err := s.proxyRepo.GetByID(ctx, proxyID); err != nil {
+		return fmt.Errorf("get proxy: %w", err)
+	}
+	return nil
+}
+
+func (s *adminServiceImpl) applyDefaultProxyToAccountsIfMissing(ctx context.Context, accountIDs []int64, proxyID *int64) error {
+	if proxyID == nil || len(accountIDs) == 0 {
+		return nil
+	}
+
+	accounts, err := s.accountRepo.GetByIDs(ctx, accountIDs)
+	if err != nil {
+		return fmt.Errorf("get accounts by ids: %w", err)
+	}
+
+	for _, account := range accounts {
+		if account == nil || account.ProxyID != nil {
+			continue
+		}
+		account.ProxyID = proxyID
+		account.Proxy = nil
+		if err := s.accountRepo.Update(ctx, account); err != nil {
+			return fmt.Errorf("update account proxy: %w", err)
+		}
+	}
+
 	return nil
 }
 

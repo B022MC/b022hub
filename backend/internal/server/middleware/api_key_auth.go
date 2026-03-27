@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/B022MC/b022hub/internal/config"
@@ -106,6 +107,10 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 		// 检查用户状态
 		if !apiKey.User.IsActive() {
 			AbortWithError(c, 401, "USER_INACTIVE", "User account is not active")
+			return
+		}
+		if code, message, blocked := boundGroupAuthError(apiKey); blocked {
+			AbortWithError(c, http.StatusForbidden, code, message)
 			return
 		}
 
@@ -218,6 +223,19 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 
 		c.Next()
 	}
+}
+
+func boundGroupAuthError(apiKey *service.APIKey) (string, string, bool) {
+	if apiKey == nil || apiKey.GroupID == nil {
+		return "", "", false
+	}
+	if apiKey.Group == nil {
+		return "GROUP_NOT_FOUND", "Group assigned to API key not found", true
+	}
+	if !apiKey.Group.IsActive() {
+		return "GROUP_INACTIVE", "Group assigned to API key is not active", true
+	}
+	return "", "", false
 }
 
 // GetAPIKeyFromContext 从上下文中获取API key

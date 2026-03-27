@@ -650,6 +650,7 @@ func groupEntityToService(g *dbent.Group) *service.Group {
 		SoraStorageQuotaBytes:           g.SoraStorageQuotaBytes,
 		DefaultValidityDays:             g.DefaultValidityDays,
 		ClaudeCodeOnly:                  g.ClaudeCodeOnly,
+		DefaultProxyID:                  g.DefaultProxyID,
 		FallbackGroupID:                 g.FallbackGroupID,
 		FallbackGroupIDOnInvalidRequest: g.FallbackGroupIDOnInvalidRequest,
 		ModelRouting:                    g.ModelRouting,

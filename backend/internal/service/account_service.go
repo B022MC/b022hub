@@ -149,6 +149,15 @@ func (s *AccountService) Create(ctx context.Context, req CreateAccountRequest) (
 		}
 	}
 
+	proxyID := req.ProxyID
+	if proxyID == nil {
+		resolvedProxyID, err := resolveGroupDefaultProxyID(ctx, s.groupRepo, req.GroupIDs)
+		if err != nil {
+			return nil, err
+		}
+		proxyID = resolvedProxyID
+	}
+
 	// 创建账号
 	account := &Account{
 		Name:        req.Name,
@@ -157,7 +166,7 @@ func (s *AccountService) Create(ctx context.Context, req CreateAccountRequest) (
 		Type:        req.Type,
 		Credentials: req.Credentials,
 		Extra:       req.Extra,
-		ProxyID:     req.ProxyID,
+		ProxyID:     proxyID,
 		Concurrency: req.Concurrency,
 		Priority:    req.Priority,
 		Status:      StatusActive,
@@ -268,6 +277,16 @@ func (s *AccountService) Update(ctx context.Context, id int64, req UpdateAccount
 	if req.GroupIDs != nil {
 		if err := s.validateGroupIDsExist(ctx, *req.GroupIDs); err != nil {
 			return nil, err
+		}
+	}
+
+	if req.GroupIDs != nil && req.ProxyID == nil && account.ProxyID == nil {
+		resolvedProxyID, err := resolveGroupDefaultProxyID(ctx, s.groupRepo, *req.GroupIDs)
+		if err != nil {
+			return nil, err
+		}
+		if resolvedProxyID != nil {
+			account.ProxyID = resolvedProxyID
 		}
 	}
 

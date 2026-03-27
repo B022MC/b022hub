@@ -402,6 +402,8 @@ export interface Group {
 }
 
 export interface AdminGroup extends Group {
+  default_proxy_id: number | null
+
   // 模型路由配置（仅管理员可见，内部信息）
   model_routing: Record<string, number[]> | null
   model_routing_enabled: boolean
@@ -503,6 +505,7 @@ export interface CreateGroupRequest {
   sora_video_price_per_request_hd?: number | null
   sora_storage_quota_bytes?: number
   claude_code_only?: boolean
+  default_proxy_id?: number | null
   fallback_group_id?: number | null
   fallback_group_id_on_invalid_request?: number | null
   mcp_xml_inject?: boolean
@@ -532,6 +535,7 @@ export interface UpdateGroupRequest {
   sora_video_price_per_request_hd?: number | null
   sora_storage_quota_bytes?: number
   claude_code_only?: boolean
+  default_proxy_id?: number | null
   fallback_group_id?: number | null
   fallback_group_id_on_invalid_request?: number | null
   mcp_xml_inject?: boolean

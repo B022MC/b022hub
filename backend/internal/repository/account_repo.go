@@ -809,8 +809,9 @@ func (r *accountRepository) ListSchedulable(ctx context.Context) ([]service.Acco
 
 func (r *accountRepository) ListSchedulableByGroupID(ctx context.Context, groupID int64) ([]service.Account, error) {
 	return r.queryAccountsByGroup(ctx, groupID, accountGroupQueryOptions{
-		status:      service.StatusActive,
-		schedulable: true,
+		status:             service.StatusActive,
+		schedulable:        true,
+		requireActiveGroup: true,
 	})
 }
 
@@ -837,9 +838,10 @@ func (r *accountRepository) ListSchedulableByPlatform(ctx context.Context, platf
 func (r *accountRepository) ListSchedulableByGroupIDAndPlatform(ctx context.Context, groupID int64, platform string) ([]service.Account, error) {
 	// 单平台查询复用多平台逻辑，保持过滤条件与排序策略一致。
 	return r.queryAccountsByGroup(ctx, groupID, accountGroupQueryOptions{
-		status:      service.StatusActive,
-		schedulable: true,
-		platforms:   []string{platform},
+		status:             service.StatusActive,
+		schedulable:        true,
+		requireActiveGroup: true,
+		platforms:          []string{platform},
 	})
 }
 
@@ -919,9 +921,10 @@ func (r *accountRepository) ListSchedulableByGroupIDAndPlatforms(ctx context.Con
 	}
 	// 复用按分组查询逻辑，保证分组优先级 + 账号优先级的排序与筛选一致。
 	return r.queryAccountsByGroup(ctx, groupID, accountGroupQueryOptions{
-		status:      service.StatusActive,
-		schedulable: true,
-		platforms:   platforms,
+		status:             service.StatusActive,
+		schedulable:        true,
+		requireActiveGroup: true,
+		platforms:          platforms,
 	})
 }
 
@@ -1403,14 +1406,19 @@ func (r *accountRepository) BulkUpdate(ctx context.Context, ids []int64, updates
 }
 
 type accountGroupQueryOptions struct {
-	status      string
-	schedulable bool
-	platforms   []string // 允许的多个平台，空切片表示不进行平台过滤
+	status             string
+	schedulable        bool
+	requireActiveGroup bool
+	platforms          []string // 允许的多个平台，空切片表示不进行平台过滤
 }
 
 func (r *accountRepository) queryAccountsByGroup(ctx context.Context, groupID int64, opts accountGroupQueryOptions) ([]service.Account, error) {
 	q := r.client.AccountGroup.Query().
 		Where(dbaccountgroup.GroupIDEQ(groupID))
+
+	if opts.requireActiveGroup {
+		q = q.Where(dbaccountgroup.HasGroupWith(dbgroup.StatusEQ(service.StatusActive)))
+	}
 
 	// 通过 account_groups 中间表查询账号，并按需叠加状态/平台/调度能力过滤。
 	preds := make([]dbpredicate.Account, 0, 6)

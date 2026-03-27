@@ -498,6 +498,33 @@ func (_u *GroupUpdate) SetNillableClaudeCodeOnly(v *bool) *GroupUpdate {
 	return _u
 }
 
+// SetDefaultProxyID sets the "default_proxy_id" field.
+func (_u *GroupUpdate) SetDefaultProxyID(v int64) *GroupUpdate {
+	_u.mutation.ResetDefaultProxyID()
+	_u.mutation.SetDefaultProxyID(v)
+	return _u
+}
+
+// SetNillableDefaultProxyID sets the "default_proxy_id" field if the given value is not nil.
+func (_u *GroupUpdate) SetNillableDefaultProxyID(v *int64) *GroupUpdate {
+	if v != nil {
+		_u.SetDefaultProxyID(*v)
+	}
+	return _u
+}
+
+// AddDefaultProxyID adds value to the "default_proxy_id" field.
+func (_u *GroupUpdate) AddDefaultProxyID(v int64) *GroupUpdate {
+	_u.mutation.AddDefaultProxyID(v)
+	return _u
+}
+
+// ClearDefaultProxyID clears the value of the "default_proxy_id" field.
+func (_u *GroupUpdate) ClearDefaultProxyID() *GroupUpdate {
+	_u.mutation.ClearDefaultProxyID()
+	return _u
+}
+
 // SetFallbackGroupID sets the "fallback_group_id" field.
 func (_u *GroupUpdate) SetFallbackGroupID(v int64) *GroupUpdate {
 	_u.mutation.ResetFallbackGroupID()
@@ -1098,6 +1125,15 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.ClaudeCodeOnly(); ok {
 		_spec.SetField(group.FieldClaudeCodeOnly, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DefaultProxyID(); ok {
+		_spec.SetField(group.FieldDefaultProxyID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedDefaultProxyID(); ok {
+		_spec.AddField(group.FieldDefaultProxyID, field.TypeInt64, value)
+	}
+	if _u.mutation.DefaultProxyIDCleared() {
+		_spec.ClearField(group.FieldDefaultProxyID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.FallbackGroupID(); ok {
 		_spec.SetField(group.FieldFallbackGroupID, field.TypeInt64, value)
@@ -1926,6 +1962,33 @@ func (_u *GroupUpdateOne) SetNillableClaudeCodeOnly(v *bool) *GroupUpdateOne {
 	return _u
 }
 
+// SetDefaultProxyID sets the "default_proxy_id" field.
+func (_u *GroupUpdateOne) SetDefaultProxyID(v int64) *GroupUpdateOne {
+	_u.mutation.ResetDefaultProxyID()
+	_u.mutation.SetDefaultProxyID(v)
+	return _u
+}
+
+// SetNillableDefaultProxyID sets the "default_proxy_id" field if the given value is not nil.
+func (_u *GroupUpdateOne) SetNillableDefaultProxyID(v *int64) *GroupUpdateOne {
+	if v != nil {
+		_u.SetDefaultProxyID(*v)
+	}
+	return _u
+}
+
+// AddDefaultProxyID adds value to the "default_proxy_id" field.
+func (_u *GroupUpdateOne) AddDefaultProxyID(v int64) *GroupUpdateOne {
+	_u.mutation.AddDefaultProxyID(v)
+	return _u
+}
+
+// ClearDefaultProxyID clears the value of the "default_proxy_id" field.
+func (_u *GroupUpdateOne) ClearDefaultProxyID() *GroupUpdateOne {
+	_u.mutation.ClearDefaultProxyID()
+	return _u
+}
+
 // SetFallbackGroupID sets the "fallback_group_id" field.
 func (_u *GroupUpdateOne) SetFallbackGroupID(v int64) *GroupUpdateOne {
 	_u.mutation.ResetFallbackGroupID()
@@ -2556,6 +2619,15 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 	}
 	if value, ok := _u.mutation.ClaudeCodeOnly(); ok {
 		_spec.SetField(group.FieldClaudeCodeOnly, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.DefaultProxyID(); ok {
+		_spec.SetField(group.FieldDefaultProxyID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedDefaultProxyID(); ok {
+		_spec.AddField(group.FieldDefaultProxyID, field.TypeInt64, value)
+	}
+	if _u.mutation.DefaultProxyIDCleared() {
+		_spec.ClearField(group.FieldDefaultProxyID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.FallbackGroupID(); ok {
 		_spec.SetField(group.FieldFallbackGroupID, field.TypeInt64, value)

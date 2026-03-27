@@ -477,6 +477,42 @@ func (s *AccountRepoSuite) TestListSchedulableByGroupIDAndPlatform() {
 	s.Require().Equal(a1.ID, accounts[0].ID)
 }
 
+func (s *AccountRepoSuite) TestListSchedulableByGroupID_ExcludesInactiveGroup() {
+	activeGroup := mustCreateGroup(s.T(), s.client, &service.Group{Name: "g-active-sched"})
+	inactiveGroup := mustCreateGroup(s.T(), s.client, &service.Group{Name: "g-inactive-sched", Status: "inactive"})
+
+	activeAcc := mustCreateAccount(s.T(), s.client, &service.Account{
+		Name:        "active-group-account",
+		Platform:    service.PlatformAnthropic,
+		Schedulable: true,
+	})
+	inactiveAcc := mustCreateAccount(s.T(), s.client, &service.Account{
+		Name:        "inactive-group-account",
+		Platform:    service.PlatformAnthropic,
+		Schedulable: true,
+	})
+
+	mustBindAccountToGroup(s.T(), s.client, activeAcc.ID, activeGroup.ID, 1)
+	mustBindAccountToGroup(s.T(), s.client, inactiveAcc.ID, inactiveGroup.ID, 1)
+
+	accounts, err := s.repo.ListSchedulableByGroupID(s.ctx, activeGroup.ID)
+	s.Require().NoError(err)
+	s.Require().Len(accounts, 1)
+	s.Require().Equal(activeAcc.ID, accounts[0].ID)
+
+	accounts, err = s.repo.ListSchedulableByGroupID(s.ctx, inactiveGroup.ID)
+	s.Require().NoError(err)
+	s.Require().Empty(accounts)
+
+	accounts, err = s.repo.ListSchedulableByGroupIDAndPlatform(s.ctx, inactiveGroup.ID, service.PlatformAnthropic)
+	s.Require().NoError(err)
+	s.Require().Empty(accounts)
+
+	accounts, err = s.repo.ListSchedulableByGroupIDAndPlatforms(s.ctx, inactiveGroup.ID, []string{service.PlatformAnthropic, service.PlatformGemini})
+	s.Require().NoError(err)
+	s.Require().Empty(accounts)
+}
+
 func (s *AccountRepoSuite) TestSetSchedulable() {
 	account := mustCreateAccount(s.T(), s.client, &service.Account{Name: "acc-sched", Schedulable: true})
 	cacheRecorder := &schedulerCacheRecorder{}

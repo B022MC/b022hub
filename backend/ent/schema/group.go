@@ -113,6 +113,10 @@ func (Group) Fields() []ent.Field {
 		field.Bool("claude_code_only").
 			Default(false).
 			Comment("是否仅允许 Claude Code 客户端"),
+		field.Int64("default_proxy_id").
+			Optional().
+			Nillable().
+			Comment("分组默认代理 ID"),
 		field.Int64("fallback_group_id").
 			Optional().
 			Nillable().
@@ -185,6 +189,7 @@ func (Group) Indexes() []ent.Index {
 		index.Fields("subscription_type"),
 		index.Fields("is_exclusive"),
 		index.Fields("deleted_at"),
+		index.Fields("default_proxy_id"),
 		index.Fields("sort_order"),
 	}
 }

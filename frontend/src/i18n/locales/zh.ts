@@ -1915,6 +1915,11 @@ export default {
         defaultModelPlaceholder: '例如: gpt-4.1',
         defaultModelHint: '当账号未配置模型映射时，所有请求模型将映射到此模型'
       },
+      defaultProxy: {
+        label: '默认代理',
+        hint: '账号创建或改组时，如果未显式指定代理，会自动继承这里配置的代理。',
+        none: '不设置默认代理'
+      },
       invalidRequestFallback: {
         title: '无效请求兜底分组',
         hint: '仅当上游明确返回 prompt too long 时才会触发，留空表示不兜底',

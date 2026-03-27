@@ -1828,6 +1828,11 @@ export default {
         defaultModelPlaceholder: 'e.g., gpt-4.1',
         defaultModelHint: 'When account has no model mapping configured, all request models will be mapped to this model'
       },
+      defaultProxy: {
+        label: 'Default Proxy',
+        hint: 'When an account is created or moved into this group without an explicit proxy, it inherits this proxy automatically.',
+        none: 'No default proxy'
+      },
       invalidRequestFallback: {
         title: 'Invalid Request Fallback Group',
         hint: 'Triggered only when upstream explicitly returns prompt too long. Leave empty to disable fallback.',

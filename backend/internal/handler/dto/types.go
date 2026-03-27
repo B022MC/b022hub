@@ -111,6 +111,8 @@ type Group struct {
 type AdminGroup struct {
 	Group
 
+	DefaultProxyID *int64 `json:"default_proxy_id"`
+
 	// 模型路由配置（仅 anthropic 平台使用）
 	ModelRouting        map[string][]int64 `json:"model_routing"`
 	ModelRoutingEnabled bool               `json:"model_routing_enabled"`

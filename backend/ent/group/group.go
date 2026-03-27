@@ -61,6 +61,8 @@ const (
 	FieldSoraStorageQuotaBytes = "sora_storage_quota_bytes"
 	// FieldClaudeCodeOnly holds the string denoting the claude_code_only field in the database.
 	FieldClaudeCodeOnly = "claude_code_only"
+	// FieldDefaultProxyID holds the string denoting the default_proxy_id field in the database.
+	FieldDefaultProxyID = "default_proxy_id"
 	// FieldFallbackGroupID holds the string denoting the fallback_group_id field in the database.
 	FieldFallbackGroupID = "fallback_group_id"
 	// FieldFallbackGroupIDOnInvalidRequest holds the string denoting the fallback_group_id_on_invalid_request field in the database.
@@ -177,6 +179,7 @@ var Columns = []string{
 	FieldSoraVideoPricePerRequestHd,
 	FieldSoraStorageQuotaBytes,
 	FieldClaudeCodeOnly,
+	FieldDefaultProxyID,
 	FieldFallbackGroupID,
 	FieldFallbackGroupIDOnInvalidRequest,
 	FieldModelRouting,
@@ -382,6 +385,11 @@ func BySoraStorageQuotaBytes(opts ...sql.OrderTermOption) OrderOption {
 // ByClaudeCodeOnly orders the results by the claude_code_only field.
 func ByClaudeCodeOnly(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldClaudeCodeOnly, opts...).ToFunc()
+}
+
+// ByDefaultProxyID orders the results by the default_proxy_id field.
+func ByDefaultProxyID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDefaultProxyID, opts...).ToFunc()
 }
 
 // ByFallbackGroupID orders the results by the fallback_group_id field.

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/B022MC/b022hub/internal/config"
@@ -52,6 +53,10 @@ func APIKeyAuthWithSubscriptionGoogle(apiKeyService *service.APIKeyService, subs
 		}
 		if !apiKey.User.IsActive() {
 			abortWithGoogleError(c, 401, "User account is not active")
+			return
+		}
+		if _, message, blocked := boundGroupAuthError(apiKey); blocked {
+			abortWithGoogleError(c, http.StatusForbidden, message)
 			return
 		}
 

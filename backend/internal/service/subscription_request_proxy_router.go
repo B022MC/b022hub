@@ -13,6 +13,14 @@ import (
 
 const defaultSubscriptionRequestProxyCacheTTL = 10 * time.Second
 
+var subscriptionProxyNamePrefixes = []string{
+	"subscription:",
+	"subscription-",
+	"sub:",
+	"sub-",
+	"[subscription]",
+}
+
 type requestProxyURLContextKey struct{}
 
 // WithRequestProxyURL stores the resolved upstream proxy URL in the request context.
@@ -124,6 +132,8 @@ func (r *SubscriptionRequestProxyRouter) listActiveProxyURLs(ctx context.Context
 		return nil, err
 	}
 
+	proxies = filterSubscriptionScopedProxies(proxies)
+
 	seen := make(map[string]struct{}, len(proxies))
 	urls := make([]string, 0, len(proxies))
 	for i := range proxies {
@@ -142,4 +152,25 @@ func (r *SubscriptionRequestProxyRouter) listActiveProxyURLs(ctx context.Context
 	r.cachedURLs = urls
 	r.expiresAt = now.Add(r.cacheTTL)
 	return append([]string(nil), urls...), nil
+}
+
+func filterSubscriptionScopedProxies(proxies []Proxy) []Proxy {
+	if len(proxies) == 0 {
+		return proxies
+	}
+
+	scoped := make([]Proxy, 0, len(proxies))
+	for i := range proxies {
+		name := strings.ToLower(strings.TrimSpace(proxies[i].Name))
+		for _, prefix := range subscriptionProxyNamePrefixes {
+			if strings.HasPrefix(name, prefix) {
+				scoped = append(scoped, proxies[i])
+				break
+			}
+		}
+	}
+	if len(scoped) > 0 {
+		return scoped
+	}
+	return proxies
 }

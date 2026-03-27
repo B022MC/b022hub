@@ -374,6 +374,15 @@
           />
           <p class="input-hint">{{ t('admin.groups.rateMultiplierHint') }}</p>
         </div>
+        <div>
+          <label class="input-label">{{ t('admin.groups.defaultProxy.label') }}</label>
+          <Select
+            v-model="createForm.default_proxy_id"
+            :options="defaultProxyOptions"
+            :placeholder="t('admin.groups.defaultProxy.none')"
+          />
+          <p class="input-hint">{{ t('admin.groups.defaultProxy.hint') }}</p>
+        </div>
         <div v-if="createForm.subscription_type !== 'subscription'" data-tour="group-form-exclusive">
           <div class="mb-1.5 flex items-center gap-1">
             <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1100,6 +1109,16 @@
             class="input"
             data-tour="group-form-multiplier"
           />
+          <p class="input-hint">{{ t('admin.groups.rateMultiplierHint') }}</p>
+        </div>
+        <div>
+          <label class="input-label">{{ t('admin.groups.defaultProxy.label') }}</label>
+          <Select
+            v-model="editForm.default_proxy_id"
+            :options="defaultProxyOptions"
+            :placeholder="t('admin.groups.defaultProxy.none')"
+          />
+          <p class="input-hint">{{ t('admin.groups.defaultProxy.hint') }}</p>
         </div>
         <div v-if="editForm.subscription_type !== 'subscription'">
           <div class="mb-1.5 flex items-center gap-1">
@@ -1838,7 +1857,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useOnboardingStore } from '@/stores/onboarding'
 import { adminAPI } from '@/api/admin'
-import type { AdminGroup, GroupPlatform, SubscriptionType } from '@/types'
+import type { AdminGroup, GroupPlatform, Proxy, SubscriptionType } from '@/types'
 import type { Column } from '@/components/common/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
@@ -2004,7 +2023,19 @@ const copyAccountsGroupOptionsForEdit = computed(() => {
   }))
 })
 
+const formatProxyOptionLabel = (proxy: Proxy) =>
+  `${proxy.name} · ${proxy.protocol}://${proxy.host}:${proxy.port}`
+
+const defaultProxyOptions = computed(() => [
+  { value: null, label: t('admin.groups.defaultProxy.none') },
+  ...proxies.value.map((proxy) => ({
+    value: proxy.id,
+    label: formatProxyOptionLabel(proxy)
+  }))
+])
+
 const groups = ref<AdminGroup[]>([])
+const proxies = ref<Proxy[]>([])
 const loading = ref(false)
 const usageMap = ref<Map<number, { today_cost: number; total_cost: number }>>(new Map())
 const usageLoading = ref(false)
@@ -2058,6 +2089,7 @@ const createForm = reactive({
   sora_storage_quota_gb: null as number | null,
   // Claude Code 客户端限制（仅 anthropic 平台使用）
   claude_code_only: false,
+  default_proxy_id: null as number | null,
   fallback_group_id: null as number | null,
   fallback_group_id_on_invalid_request: null as number | null,
   // OpenAI Messages 调度配置（仅 openai 平台使用）
@@ -2302,6 +2334,7 @@ const editForm = reactive({
   sora_storage_quota_gb: null as number | null,
   // Claude Code 客户端限制（仅 anthropic 平台使用）
   claude_code_only: false,
+  default_proxy_id: null as number | null,
   fallback_group_id: null as number | null,
   fallback_group_id_on_invalid_request: null as number | null,
   // OpenAI Messages 调度配置（仅 openai 平台使用）
@@ -2359,6 +2392,14 @@ const loadGroups = async () => {
     if (abortController === currentController && !signal.aborted) {
       loading.value = false
     }
+  }
+}
+
+const loadProxies = async () => {
+  try {
+    proxies.value = await adminAPI.proxies.getAll()
+  } catch (error) {
+    console.error('Error loading proxies:', error)
   }
 }
 
@@ -2449,6 +2490,7 @@ const closeCreateModal = () => {
   createForm.sora_video_price_per_request_hd = null
   createForm.sora_storage_quota_gb = null
   createForm.claude_code_only = false
+  createForm.default_proxy_id = null
   createForm.fallback_group_id = null
   createForm.fallback_group_id_on_invalid_request = null
   createForm.allow_messages_dispatch = false
@@ -2536,6 +2578,7 @@ const handleEdit = async (group: AdminGroup) => {
   editForm.sora_video_price_per_request_hd = group.sora_video_price_per_request_hd
   editForm.sora_storage_quota_gb = group.sora_storage_quota_bytes ? Number((group.sora_storage_quota_bytes / (1024 * 1024 * 1024)).toFixed(2)) : null
   editForm.claude_code_only = group.claude_code_only || false
+  editForm.default_proxy_id = group.default_proxy_id
   editForm.fallback_group_id = group.fallback_group_id
   editForm.fallback_group_id_on_invalid_request = group.fallback_group_id_on_invalid_request
   editForm.allow_messages_dispatch = group.allow_messages_dispatch || false
@@ -2577,6 +2620,7 @@ const handleUpdateGroup = async () => {
       weekly_limit_usd: normalizeOptionalLimit(editForm.weekly_limit_usd as number | string | null),
       monthly_limit_usd: normalizeOptionalLimit(editForm.monthly_limit_usd as number | string | null),
       sora_storage_quota_bytes: editQuotaGb ? Math.round(editQuotaGb * 1024 * 1024 * 1024) : 0,
+      default_proxy_id: editForm.default_proxy_id === null ? 0 : editForm.default_proxy_id,
       fallback_group_id: editForm.fallback_group_id === null ? 0 : editForm.fallback_group_id,
       fallback_group_id_on_invalid_request:
         editForm.fallback_group_id_on_invalid_request === null
@@ -2703,6 +2747,7 @@ const saveSortOrder = async () => {
 
 onMounted(() => {
   loadGroups()
+  loadProxies()
   document.addEventListener('click', handleClickOutside)
 })
 

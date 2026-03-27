@@ -342,6 +342,20 @@ func (_c *GroupCreate) SetNillableClaudeCodeOnly(v *bool) *GroupCreate {
 	return _c
 }
 
+// SetDefaultProxyID sets the "default_proxy_id" field.
+func (_c *GroupCreate) SetDefaultProxyID(v int64) *GroupCreate {
+	_c.mutation.SetDefaultProxyID(v)
+	return _c
+}
+
+// SetNillableDefaultProxyID sets the "default_proxy_id" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableDefaultProxyID(v *int64) *GroupCreate {
+	if v != nil {
+		_c.SetDefaultProxyID(*v)
+	}
+	return _c
+}
+
 // SetFallbackGroupID sets the "fallback_group_id" field.
 func (_c *GroupCreate) SetFallbackGroupID(v int64) *GroupCreate {
 	_c.mutation.SetFallbackGroupID(v)
@@ -848,6 +862,10 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ClaudeCodeOnly(); ok {
 		_spec.SetField(group.FieldClaudeCodeOnly, field.TypeBool, value)
 		_node.ClaudeCodeOnly = value
+	}
+	if value, ok := _c.mutation.DefaultProxyID(); ok {
+		_spec.SetField(group.FieldDefaultProxyID, field.TypeInt64, value)
+		_node.DefaultProxyID = &value
 	}
 	if value, ok := _c.mutation.FallbackGroupID(); ok {
 		_spec.SetField(group.FieldFallbackGroupID, field.TypeInt64, value)
@@ -1452,6 +1470,30 @@ func (u *GroupUpsert) SetClaudeCodeOnly(v bool) *GroupUpsert {
 // UpdateClaudeCodeOnly sets the "claude_code_only" field to the value that was provided on create.
 func (u *GroupUpsert) UpdateClaudeCodeOnly() *GroupUpsert {
 	u.SetExcluded(group.FieldClaudeCodeOnly)
+	return u
+}
+
+// SetDefaultProxyID sets the "default_proxy_id" field.
+func (u *GroupUpsert) SetDefaultProxyID(v int64) *GroupUpsert {
+	u.Set(group.FieldDefaultProxyID, v)
+	return u
+}
+
+// UpdateDefaultProxyID sets the "default_proxy_id" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateDefaultProxyID() *GroupUpsert {
+	u.SetExcluded(group.FieldDefaultProxyID)
+	return u
+}
+
+// AddDefaultProxyID adds v to the "default_proxy_id" field.
+func (u *GroupUpsert) AddDefaultProxyID(v int64) *GroupUpsert {
+	u.Add(group.FieldDefaultProxyID, v)
+	return u
+}
+
+// ClearDefaultProxyID clears the value of the "default_proxy_id" field.
+func (u *GroupUpsert) ClearDefaultProxyID() *GroupUpsert {
+	u.SetNull(group.FieldDefaultProxyID)
 	return u
 }
 
@@ -2124,6 +2166,34 @@ func (u *GroupUpsertOne) SetClaudeCodeOnly(v bool) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateClaudeCodeOnly() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateClaudeCodeOnly()
+	})
+}
+
+// SetDefaultProxyID sets the "default_proxy_id" field.
+func (u *GroupUpsertOne) SetDefaultProxyID(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDefaultProxyID(v)
+	})
+}
+
+// AddDefaultProxyID adds v to the "default_proxy_id" field.
+func (u *GroupUpsertOne) AddDefaultProxyID(v int64) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDefaultProxyID(v)
+	})
+}
+
+// UpdateDefaultProxyID sets the "default_proxy_id" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateDefaultProxyID() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDefaultProxyID()
+	})
+}
+
+// ClearDefaultProxyID clears the value of the "default_proxy_id" field.
+func (u *GroupUpsertOne) ClearDefaultProxyID() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDefaultProxyID()
 	})
 }
 
@@ -2986,6 +3056,34 @@ func (u *GroupUpsertBulk) SetClaudeCodeOnly(v bool) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateClaudeCodeOnly() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateClaudeCodeOnly()
+	})
+}
+
+// SetDefaultProxyID sets the "default_proxy_id" field.
+func (u *GroupUpsertBulk) SetDefaultProxyID(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDefaultProxyID(v)
+	})
+}
+
+// AddDefaultProxyID adds v to the "default_proxy_id" field.
+func (u *GroupUpsertBulk) AddDefaultProxyID(v int64) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.AddDefaultProxyID(v)
+	})
+}
+
+// UpdateDefaultProxyID sets the "default_proxy_id" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateDefaultProxyID() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDefaultProxyID()
+	})
+}
+
+// ClearDefaultProxyID clears the value of the "default_proxy_id" field.
+func (u *GroupUpsertBulk) ClearDefaultProxyID() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearDefaultProxyID()
 	})
 }
 
