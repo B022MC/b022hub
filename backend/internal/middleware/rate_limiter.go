@@ -1,13 +1,20 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	pkgip "github.com/B022MC/b022hub/internal/pkg/ip"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
@@ -23,6 +30,7 @@ const (
 // RateLimitOptions 限流可选配置
 type RateLimitOptions struct {
 	FailureMode RateLimitFailureMode
+	KeyFunc     func(*gin.Context) string
 }
 
 var rateLimitScript = redis.NewScript(`
@@ -88,8 +96,8 @@ func (r *RateLimiter) LimitWithOptions(key string, limit int, window time.Durati
 	}
 
 	return func(c *gin.Context) {
-		ip := c.ClientIP()
-		redisKey := r.prefix + key + ":" + ip
+		keySuffix := resolveRateLimitKey(c, opts)
+		redisKey := r.prefix + key + ":" + keySuffix
 
 		ctx := c.Request.Context()
 
@@ -119,6 +127,79 @@ func (r *RateLimiter) LimitWithOptions(key string, limit int, window time.Durati
 
 		c.Next()
 	}
+}
+
+func resolveRateLimitKey(c *gin.Context, opts RateLimitOptions) string {
+	if opts.KeyFunc != nil {
+		if key := strings.TrimSpace(opts.KeyFunc(c)); key != "" {
+			return key
+		}
+	}
+	if ip := strings.TrimSpace(RealClientIPKey(c)); ip != "" {
+		return ip
+	}
+	return "unknown"
+}
+
+// RealClientIPKey returns the best-effort real client IP for rate limiting.
+func RealClientIPKey(c *gin.Context) string {
+	if c == nil {
+		return ""
+	}
+	return strings.TrimSpace(pkgip.GetClientIP(c))
+}
+
+// JSONBodyFieldHashKey returns a stable short hash for the given JSON body field.
+// The request body is restored after reading so downstream handlers can bind it normally.
+func JSONBodyFieldHashKey(c *gin.Context, field string) string {
+	if c == nil || c.Request == nil || c.Request.Body == nil {
+		return ""
+	}
+	field = strings.TrimSpace(field)
+	if field == "" {
+		return ""
+	}
+
+	raw, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		return ""
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(raw))
+	if len(raw) == 0 {
+		return ""
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return ""
+	}
+
+	value, ok := payload[field]
+	if !ok {
+		return ""
+	}
+	return hashRateLimitValue(fmt.Sprint(value))
+}
+
+func JoinRateLimitKey(parts ...string) string {
+	cleaned := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		cleaned = append(cleaned, part)
+	}
+	return strings.Join(cleaned, ":")
+}
+
+func hashRateLimitValue(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(sum[:12])
 }
 
 func windowTTLMillis(window time.Duration) int64 {

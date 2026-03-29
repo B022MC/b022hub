@@ -66,8 +66,14 @@ func RegisterAuthRoutes(
 		auth.GET("/oauth/linuxdo/callback", h.Auth.LinuxDoOAuthCallback)
 		auth.GET("/payments/linuxdo/notify", h.LinuxDoCredit.Notify)
 		auth.POST("/oauth/linuxdo/complete-registration",
-			rateLimiter.LimitWithOptions("oauth-linuxdo-complete", 10, time.Minute, middleware.RateLimitOptions{
+			rateLimiter.LimitWithOptions("oauth-linuxdo-complete", 20, time.Minute, middleware.RateLimitOptions{
 				FailureMode: middleware.RateLimitFailClose,
+				KeyFunc: func(c *gin.Context) string {
+					return middleware.JoinRateLimitKey(
+						middleware.RealClientIPKey(c),
+						middleware.JSONBodyFieldHashKey(c, "pending_oauth_token"),
+					)
+				},
 			}),
 			h.Auth.CompleteLinuxDoOAuthRegistration,
 		)

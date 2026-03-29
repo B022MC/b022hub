@@ -2,8 +2,10 @@ package middleware
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -140,4 +142,107 @@ func TestRateLimiterSuccessAndLimit(t *testing.T) {
 	recorder = httptest.NewRecorder()
 	router.ServeHTTP(recorder, req)
 	require.Equal(t, http.StatusTooManyRequests, recorder.Code)
+}
+
+func TestRateLimiterUsesForwardedClientIP(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	callCounts := make(map[string]int64)
+	originalRun := rateLimitRun
+	rateLimitRun = func(ctx context.Context, client *redis.Client, key string, windowMillis int64) (int64, bool, error) {
+		callCounts[key]++
+		return callCounts[key], false, nil
+	}
+	t.Cleanup(func() {
+		rateLimitRun = originalRun
+	})
+
+	limiter := NewRateLimiter(redis.NewClient(&redis.Options{Addr: "127.0.0.1:1"}))
+
+	router := gin.New()
+	router.Use(limiter.Limit("api", 1, time.Second))
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req1 := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req1.RemoteAddr = "127.0.0.1:1234"
+	req1.Header.Set("X-Real-IP", "198.51.100.10")
+	rec1 := httptest.NewRecorder()
+	router.ServeHTTP(rec1, req1)
+	require.Equal(t, http.StatusOK, rec1.Code)
+
+	req2 := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req2.RemoteAddr = "127.0.0.1:1234"
+	req2.Header.Set("X-Real-IP", "198.51.100.11")
+	rec2 := httptest.NewRecorder()
+	router.ServeHTTP(rec2, req2)
+	require.Equal(t, http.StatusOK, rec2.Code)
+
+	req3 := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req3.RemoteAddr = "127.0.0.1:1234"
+	req3.Header.Set("X-Real-IP", "198.51.100.10")
+	rec3 := httptest.NewRecorder()
+	router.ServeHTTP(rec3, req3)
+	require.Equal(t, http.StatusTooManyRequests, rec3.Code)
+}
+
+func TestRateLimiterCustomKeyFuncUsesTokenFingerprint(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	callCounts := make(map[string]int64)
+	originalRun := rateLimitRun
+	rateLimitRun = func(ctx context.Context, client *redis.Client, key string, windowMillis int64) (int64, bool, error) {
+		callCounts[key]++
+		return callCounts[key], false, nil
+	}
+	t.Cleanup(func() {
+		rateLimitRun = originalRun
+	})
+
+	limiter := NewRateLimiter(redis.NewClient(&redis.Options{Addr: "127.0.0.1:1"}))
+
+	type payload struct {
+		PendingOAuthToken string `json:"pending_oauth_token"`
+	}
+
+	router := gin.New()
+	router.Use(limiter.LimitWithOptions("oauth-linuxdo-complete", 1, time.Second, RateLimitOptions{
+		KeyFunc: func(c *gin.Context) string {
+			return JoinRateLimitKey(
+				RealClientIPKey(c),
+				JSONBodyFieldHashKey(c, "pending_oauth_token"),
+			)
+		},
+	}))
+	router.POST("/test", func(c *gin.Context) {
+		var req payload
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"token": req.PendingOAuthToken})
+	})
+
+	doReq := func(token string) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(payload{PendingOAuthToken: token})
+		req := httptest.NewRequest(http.MethodPost, "/test", strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Real-IP", "198.51.100.20")
+		req.RemoteAddr = "127.0.0.1:1234"
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		return rec
+	}
+
+	rec1 := doReq("token-a")
+	require.Equal(t, http.StatusOK, rec1.Code)
+	require.Contains(t, rec1.Body.String(), "token-a")
+
+	rec2 := doReq("token-a")
+	require.Equal(t, http.StatusTooManyRequests, rec2.Code)
+
+	rec3 := doReq("token-b")
+	require.Equal(t, http.StatusOK, rec3.Code)
+	require.Contains(t, rec3.Body.String(), "token-b")
 }
