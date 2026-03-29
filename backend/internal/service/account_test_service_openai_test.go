@@ -4,7 +4,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -118,7 +117,7 @@ func TestAccountTestService_OpenAI429PersistsSnapshotAndRateLimit(t *testing.T) 
 	}
 }
 
-func TestAccountTestService_OpenAI401AccountDeactivatedDeletesAccount(t *testing.T) {
+func TestAccountTestService_OpenAI401AccountDeactivatedDoesNotDeleteAccount(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, recorder := newSoraTestContext()
 
@@ -137,36 +136,12 @@ func TestAccountTestService_OpenAI401AccountDeactivatedDeletesAccount(t *testing
 
 	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
 	require.Error(t, err)
-	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 0, repo.deleteCalls)
 	require.Equal(t, 0, repo.setErrorCalls)
-	require.Contains(t, recorder.Body.String(), "account auto-deleted")
+	require.NotContains(t, recorder.Body.String(), "account auto-deleted")
 }
 
-func TestAccountTestService_OpenAI401AccountDeactivatedDeleteFailureFallsBackToSetError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	ctx, _ := newSoraTestContext()
-
-	resp := newJSONResponse(http.StatusUnauthorized, `{"error":{"message":"Your OpenAI account has been deactivated, please check your email for more information.","type":"invalid_request_error","code":"account_deactivated","param":null},"status":401}`)
-
-	repo := &openAIAccountTestRepo{deleteErr: errors.New("delete failed")}
-	upstream := &queuedHTTPUpstream{responses: []*http.Response{resp}}
-	svc := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: &config.Config{}}
-	account := &Account{
-		ID:          86,
-		Platform:    PlatformOpenAI,
-		Type:        AccountTypeAPIKey,
-		Concurrency: 1,
-		Credentials: map[string]any{"api_key": "test-key"},
-	}
-
-	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
-	require.Error(t, err)
-	require.Equal(t, 1, repo.deleteCalls)
-	require.Equal(t, 1, repo.setErrorCalls)
-	require.Contains(t, repo.lastErrorMsg, "OpenAI account deactivated")
-}
-
-func TestAccountTestService_OpenAI401TokenRevokedDeletesAccount(t *testing.T) {
+func TestAccountTestService_OpenAI401TokenRevokedDoesNotDeleteAccount(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, recorder := newSoraTestContext()
 
@@ -185,31 +160,7 @@ func TestAccountTestService_OpenAI401TokenRevokedDeletesAccount(t *testing.T) {
 
 	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
 	require.Error(t, err)
-	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 0, repo.deleteCalls)
 	require.Equal(t, 0, repo.setErrorCalls)
-	require.Contains(t, recorder.Body.String(), "account auto-deleted")
-}
-
-func TestAccountTestService_OpenAI401TokenRevokedDeleteFailureFallsBackToSetError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	ctx, _ := newSoraTestContext()
-
-	resp := newJSONResponse(http.StatusUnauthorized, `{"error":{"message":"Encountered invalidated oauth token for user, failing request","type":null,"code":"token_revoked","param":null},"status":401}`)
-
-	repo := &openAIAccountTestRepo{deleteErr: errors.New("delete failed")}
-	upstream := &queuedHTTPUpstream{responses: []*http.Response{resp}}
-	svc := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: &config.Config{}}
-	account := &Account{
-		ID:          84,
-		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
-		Concurrency: 1,
-		Credentials: map[string]any{"access_token": "test-token"},
-	}
-
-	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
-	require.Error(t, err)
-	require.Equal(t, 1, repo.deleteCalls)
-	require.Equal(t, 1, repo.setErrorCalls)
-	require.Contains(t, repo.lastErrorMsg, "OpenAI OAuth token revoked")
+	require.NotContains(t, recorder.Body.String(), "account auto-deleted")
 }

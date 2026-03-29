@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -115,17 +114,6 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 	upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
 	if upstreamMsg != "" {
 		upstreamMsg = truncateForLog([]byte(upstreamMsg), 512)
-	}
-
-	if statusCode == http.StatusUnauthorized {
-		reason := detectOpenAIAutoDeleteReason(account, upstreamMsg, responseBody)
-		if deleted, err := tryAutoDeleteOpenAIAccount(ctx, s.accountRepo, account, reason); deleted {
-			if err != nil {
-				msg := formatOpenAIAutoDeleteStatus(reason, upstreamMsg)
-				s.handleAuthError(ctx, account, msg)
-			}
-			return true
-		}
 	}
 
 	customErrorCodesEnabled := account.IsCustomErrorCodesEnabled()
@@ -247,70 +235,6 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 	}
 
 	return shouldDisable
-}
-
-func tryAutoDeleteOpenAIAccount(ctx context.Context, accountRepo AccountRepository, account *Account, reason string) (bool, error) {
-	if strings.TrimSpace(reason) == "" {
-		return false, nil
-	}
-	if accountRepo == nil {
-		err := errors.New("account repository is nil")
-		slog.Warn("openai_account_auto_delete_failed", "account_id", accountIDForLog(account), "error", err)
-		return true, err
-	}
-	if err := accountRepo.Delete(ctx, account.ID); err != nil {
-		slog.Warn("openai_account_auto_delete_failed", "account_id", account.ID, "error", err)
-		return true, err
-	}
-	slog.Warn("openai_account_auto_deleted", "account_id", account.ID, "platform", account.Platform, "reason", reason)
-	return true, nil
-}
-
-func detectOpenAIAutoDeleteReason(account *Account, upstreamMsg string, responseBody []byte) string {
-	if account == nil {
-		return ""
-	}
-	if account.Platform != PlatformOpenAI && account.Platform != PlatformSora {
-		return ""
-	}
-	code := strings.ToLower(strings.TrimSpace(extractUpstreamErrorCode(responseBody)))
-	switch code {
-	case "account_deactivated":
-		return "account_deactivated"
-	case "token_revoked":
-		if account.Type == AccountTypeOAuth {
-			return "token_revoked"
-		}
-	}
-
-	msg := strings.ToLower(strings.TrimSpace(upstreamMsg))
-	switch {
-	case strings.Contains(msg, "account has been deactivated"),
-		strings.Contains(msg, "account deactivated"):
-		return "account_deactivated"
-	case account.Type == AccountTypeOAuth && strings.Contains(msg, "invalidated oauth token"):
-		return "token_revoked"
-	default:
-		return ""
-	}
-}
-
-func formatOpenAIAutoDeleteStatus(reason, upstreamMsg string) string {
-	base := "OpenAI account deactivated (401)"
-	if reason == "token_revoked" {
-		base = "OpenAI OAuth token revoked (401)"
-	}
-	if upstreamMsg == "" {
-		return base
-	}
-	return base + ": " + upstreamMsg
-}
-
-func accountIDForLog(account *Account) int64 {
-	if account == nil {
-		return 0
-	}
-	return account.ID
 }
 
 // PreCheckUsage proactively checks local quota before dispatching a request.

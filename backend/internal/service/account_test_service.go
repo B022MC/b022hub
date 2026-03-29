@@ -548,22 +548,6 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 			}
 		}
 		errMsg := fmt.Sprintf("API returned %d: %s", resp.StatusCode, string(body))
-		if resp.StatusCode == http.StatusUnauthorized && s.accountRepo != nil {
-			upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(body))
-			upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
-			if upstreamMsg != "" {
-				upstreamMsg = truncateForLog([]byte(upstreamMsg), 512)
-			}
-			reason := detectOpenAIAutoDeleteReason(account, upstreamMsg, body)
-			if deleted, err := tryAutoDeleteOpenAIAccount(ctx, s.accountRepo, account, reason); deleted {
-				if err != nil {
-					deleteErrMsg := formatOpenAIAutoDeleteStatus(reason, upstreamMsg)
-					_ = s.accountRepo.SetError(ctx, account.ID, deleteErrMsg)
-				} else {
-					errMsg += " (account auto-deleted)"
-				}
-			}
-		}
 		return s.sendErrorAndEnd(c, errMsg)
 	}
 

@@ -138,7 +138,7 @@ func TestRateLimitService_HandleUpstreamError_NonOAuth401(t *testing.T) {
 	require.Empty(t, invalidator.accounts)
 }
 
-func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeletesAccount(t *testing.T) {
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedOAuthUsesTempUnschedulableWithoutDeleting(t *testing.T) {
 	repo := &rateLimitAccountRepoStub{}
 	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	account := &Account{
@@ -151,13 +151,13 @@ func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeletesAcc
 	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
 
 	require.True(t, shouldDisable)
-	require.Equal(t, 1, repo.deleteCalls)
-	require.Equal(t, 0, repo.tempCalls)
+	require.Equal(t, 0, repo.deleteCalls)
+	require.Equal(t, 1, repo.tempCalls)
 	require.Equal(t, 0, repo.setErrorCalls)
 }
 
-func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeleteFailureFallsBackToSetError(t *testing.T) {
-	repo := &rateLimitAccountRepoStub{deleteErr: errors.New("delete failed")}
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedAPIKeySetsErrorWithoutDeleting(t *testing.T) {
+	repo := &rateLimitAccountRepoStub{}
 	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	account := &Account{
 		ID:       104,
@@ -169,13 +169,13 @@ func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeleteFail
 	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
 
 	require.True(t, shouldDisable)
-	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 0, repo.deleteCalls)
 	require.Equal(t, 0, repo.tempCalls)
 	require.Equal(t, 1, repo.setErrorCalls)
-	require.Contains(t, repo.lastErrorMsg, "OpenAI account deactivated")
+	require.Contains(t, repo.lastErrorMsg, "account has been deactivated")
 }
 
-func TestRateLimitService_HandleUpstreamError_OpenAITokenRevokedDeletesAccount(t *testing.T) {
+func TestRateLimitService_HandleUpstreamError_OpenAITokenRevokedOAuthUsesTempUnschedulableWithoutDeleting(t *testing.T) {
 	repo := &rateLimitAccountRepoStub{}
 	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	account := &Account{
@@ -188,31 +188,12 @@ func TestRateLimitService_HandleUpstreamError_OpenAITokenRevokedDeletesAccount(t
 	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
 
 	require.True(t, shouldDisable)
-	require.Equal(t, 1, repo.deleteCalls)
-	require.Equal(t, 0, repo.tempCalls)
+	require.Equal(t, 0, repo.deleteCalls)
+	require.Equal(t, 1, repo.tempCalls)
 	require.Equal(t, 0, repo.setErrorCalls)
 }
 
-func TestRateLimitService_HandleUpstreamError_OpenAITokenRevokedDeleteFailureFallsBackToSetError(t *testing.T) {
-	repo := &rateLimitAccountRepoStub{deleteErr: errors.New("delete failed")}
-	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
-	account := &Account{
-		ID:       1042,
-		Platform: PlatformOpenAI,
-		Type:     AccountTypeOAuth,
-	}
-
-	body := []byte(`{"error":{"message":"Encountered invalidated oauth token for user, failing request","type":null,"code":"token_revoked","param":null},"status":401}`)
-	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
-
-	require.True(t, shouldDisable)
-	require.Equal(t, 1, repo.deleteCalls)
-	require.Equal(t, 0, repo.tempCalls)
-	require.Equal(t, 1, repo.setErrorCalls)
-	require.Contains(t, repo.lastErrorMsg, "OpenAI OAuth token revoked")
-}
-
-func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeletesPoolModeAccount(t *testing.T) {
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedPoolModeSkipsLocalState(t *testing.T) {
 	repo := &rateLimitAccountRepoStub{}
 	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	account := &Account{
@@ -227,13 +208,13 @@ func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeletesPoo
 	body := []byte(`{"error":{"message":"Your OpenAI account has been deactivated, please check your email for more information.","type":"invalid_request_error","code":"account_deactivated","param":null},"status":401}`)
 	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
 
-	require.True(t, shouldDisable)
-	require.Equal(t, 1, repo.deleteCalls)
+	require.False(t, shouldDisable)
+	require.Equal(t, 0, repo.deleteCalls)
 	require.Equal(t, 0, repo.tempCalls)
 	require.Equal(t, 0, repo.setErrorCalls)
 }
 
-func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeletesWhenCustomErrorCodesSkip401(t *testing.T) {
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedCustomErrorCodesSkip401(t *testing.T) {
 	repo := &rateLimitAccountRepoStub{}
 	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	account := &Account{
@@ -249,8 +230,8 @@ func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedDeletesWhe
 	body := []byte(`{"error":{"message":"Your OpenAI account has been deactivated, please check your email for more information.","type":"invalid_request_error","code":"account_deactivated","param":null},"status":401}`)
 	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
 
-	require.True(t, shouldDisable)
-	require.Equal(t, 1, repo.deleteCalls)
+	require.False(t, shouldDisable)
+	require.Equal(t, 0, repo.deleteCalls)
 	require.Equal(t, 0, repo.tempCalls)
 	require.Equal(t, 0, repo.setErrorCalls)
 }
