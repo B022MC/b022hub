@@ -546,6 +546,15 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 				_ = s.accountRepo.SetRateLimited(ctx, account.ID, *resetAt)
 				account.RateLimitResetAt = resetAt
 			}
+			if shouldAutoDeleteOpenAIOAuthTokenRevoked(account, resp.StatusCode, body) {
+				upstreamMsg := sanitizeUpstreamErrorMessage(strings.TrimSpace(extractUpstreamErrorMessage(body)))
+				if err := s.accountRepo.Delete(ctx, account.ID); err != nil {
+					_ = s.accountRepo.SetError(ctx, account.ID, formatOpenAIOAuthTokenRevokedStatus(upstreamMsg))
+				} else {
+					errMsg := fmt.Sprintf("API returned %d: %s (account auto-deleted)", resp.StatusCode, string(body))
+					return s.sendErrorAndEnd(c, errMsg)
+				}
+			}
 		}
 		errMsg := fmt.Sprintf("API returned %d: %s", resp.StatusCode, string(body))
 		return s.sendErrorAndEnd(c, errMsg)

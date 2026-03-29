@@ -4,6 +4,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -141,7 +142,7 @@ func TestAccountTestService_OpenAI401AccountDeactivatedDoesNotDeleteAccount(t *t
 	require.NotContains(t, recorder.Body.String(), "account auto-deleted")
 }
 
-func TestAccountTestService_OpenAI401TokenRevokedDoesNotDeleteAccount(t *testing.T) {
+func TestAccountTestService_OpenAI401TokenRevokedAutoDeletesAccount(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, recorder := newSoraTestContext()
 
@@ -160,7 +161,32 @@ func TestAccountTestService_OpenAI401TokenRevokedDoesNotDeleteAccount(t *testing
 
 	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
 	require.Error(t, err)
-	require.Equal(t, 0, repo.deleteCalls)
+	require.Equal(t, 1, repo.deleteCalls)
 	require.Equal(t, 0, repo.setErrorCalls)
+	require.Contains(t, recorder.Body.String(), "account auto-deleted")
+}
+
+func TestAccountTestService_OpenAI401TokenRevokedDeleteFailureSetsError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx, recorder := newSoraTestContext()
+
+	resp := newJSONResponse(http.StatusUnauthorized, `{"error":{"message":"Encountered invalidated oauth token for user, failing request","type":null,"code":"token_revoked","param":null},"status":401}`)
+
+	repo := &openAIAccountTestRepo{deleteErr: errors.New("boom")}
+	upstream := &queuedHTTPUpstream{responses: []*http.Response{resp}}
+	svc := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: &config.Config{}}
+	account := &Account{
+		ID:          86,
+		Platform:    PlatformOpenAI,
+		Type:        AccountTypeOAuth,
+		Concurrency: 1,
+		Credentials: map[string]any{"access_token": "test-token"},
+	}
+
+	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
+	require.Error(t, err)
+	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 1, repo.setErrorCalls)
+	require.Contains(t, repo.lastErrorMsg, "OpenAI OAuth token revoked (401)")
 	require.NotContains(t, recorder.Body.String(), "account auto-deleted")
 }

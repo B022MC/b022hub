@@ -16,6 +16,13 @@
         {{ t('admin.accounts.dataImportWarning') }}
       </div>
 
+      <div class="space-y-2">
+        <GroupSelector v-model="selectedGroupIds" :groups="groups" />
+        <div class="text-xs text-gray-500 dark:text-dark-400">
+          {{ t('admin.accounts.dataImportGroupHint') }}
+        </div>
+      </div>
+
       <div>
         <label class="input-label">{{ t('admin.accounts.dataImportFile') }}</label>
         <div
@@ -88,12 +95,14 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import GroupSelector from '@/components/common/GroupSelector.vue'
 import { adminAPI } from '@/api/admin'
 import { useAppStore } from '@/stores/app'
-import type { AdminDataImportResult } from '@/types'
+import type { AdminDataImportResult, AdminGroup } from '@/types'
 
 interface Props {
   show: boolean
+  groups?: AdminGroup[]
 }
 
 interface Emits {
@@ -101,7 +110,9 @@ interface Emits {
   (e: 'imported'): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  groups: () => []
+})
 const emit = defineEmits<Emits>()
 
 const { t } = useI18n()
@@ -110,9 +121,11 @@ const appStore = useAppStore()
 const importing = ref(false)
 const file = ref<File | null>(null)
 const result = ref<AdminDataImportResult | null>(null)
+const selectedGroupIds = ref<number[]>([])
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const fileName = computed(() => file.value?.name || '')
+const groups = computed(() => props.groups)
 
 const errorItems = computed(() => result.value?.errors || [])
 
@@ -122,6 +135,7 @@ watch(
     if (open) {
       file.value = null
       result.value = null
+      selectedGroupIds.value = []
       if (fileInput.value) {
         fileInput.value.value = ''
       }
@@ -171,9 +185,11 @@ const handleImport = async () => {
   try {
     const text = await readFileAsText(file.value)
     const dataPayload = JSON.parse(text)
+    const groupIds = selectedGroupIds.value.length > 0 ? [...selectedGroupIds.value] : undefined
 
     const res = await adminAPI.accounts.importData({
       data: dataPayload,
+      group_ids: groupIds,
       skip_default_group_bind: true
     })
 

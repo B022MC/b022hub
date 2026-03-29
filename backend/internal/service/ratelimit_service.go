@@ -116,6 +116,17 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 		upstreamMsg = truncateForLog([]byte(upstreamMsg), 512)
 	}
 
+	if shouldAutoDeleteOpenAIOAuthTokenRevoked(account, statusCode, responseBody) {
+		deleteMsg := formatOpenAIOAuthTokenRevokedStatus(upstreamMsg)
+		if err := s.accountRepo.Delete(ctx, account.ID); err != nil {
+			slog.Warn("openai_oauth_token_revoked_delete_failed", "account_id", account.ID, "error", err)
+			s.handleAuthError(ctx, account, deleteMsg)
+		} else {
+			slog.Info("openai_oauth_token_revoked_account_deleted", "account_id", account.ID)
+		}
+		return true
+	}
+
 	customErrorCodesEnabled := account.IsCustomErrorCodesEnabled()
 
 	// 池模式默认不标记本地账号状态；仅当用户显式配置自定义错误码时按本地策略处理。
@@ -235,6 +246,47 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 	}
 
 	return shouldDisable
+}
+
+func shouldAutoDeleteOpenAIOAuthTokenRevoked(account *Account, statusCode int, responseBody []byte) bool {
+	if account == nil || statusCode != http.StatusUnauthorized {
+		return false
+	}
+	if account.Platform != PlatformOpenAI || account.Type != AccountTypeOAuth {
+		return false
+	}
+
+	code, message := extractOpenAIErrorCodeAndMessage(responseBody)
+	if code == "token_revoked" {
+		return true
+	}
+	if strings.Contains(message, "invalidated oauth token") {
+		return true
+	}
+
+	raw := strings.ToLower(strings.TrimSpace(string(responseBody)))
+	return strings.Contains(raw, `"code":"token_revoked"`) || strings.Contains(raw, "invalidated oauth token")
+}
+
+func extractOpenAIErrorCodeAndMessage(body []byte) (string, string) {
+	var payload struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return "", ""
+	}
+	return strings.ToLower(strings.TrimSpace(payload.Error.Code)), strings.ToLower(strings.TrimSpace(payload.Error.Message))
+}
+
+func formatOpenAIOAuthTokenRevokedStatus(upstreamMsg string) string {
+	msg := "OpenAI OAuth token revoked (401)"
+	if upstreamMsg == "" {
+		return msg
+	}
+	return msg + ": " + upstreamMsg
 }
 
 // PreCheckUsage proactively checks local quota before dispatching a request.

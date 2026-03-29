@@ -59,6 +59,7 @@ type DataAccount struct {
 
 type DataImportRequest struct {
 	Data                 DataPayload `json:"data"`
+	GroupIDs             []int64     `json:"group_ids"`
 	SkipDefaultGroupBind *bool       `json:"skip_default_group_bind"`
 }
 
@@ -308,7 +309,7 @@ func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) 
 			Concurrency:          item.Concurrency,
 			Priority:             item.Priority,
 			RateMultiplier:       item.RateMultiplier,
-			GroupIDs:             nil,
+			GroupIDs:             req.GroupIDs,
 			ExpiresAt:            item.ExpiresAt,
 			AutoPauseOnExpired:   item.AutoPauseOnExpired,
 			SkipDefaultGroupBind: skipDefaultGroupBind,
