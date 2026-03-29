@@ -165,3 +165,51 @@ func TestAccountTestService_OpenAI401AccountDeactivatedDeleteFailureFallsBackToS
 	require.Equal(t, 1, repo.setErrorCalls)
 	require.Contains(t, repo.lastErrorMsg, "OpenAI account deactivated")
 }
+
+func TestAccountTestService_OpenAI401TokenRevokedDeletesAccount(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx, recorder := newSoraTestContext()
+
+	resp := newJSONResponse(http.StatusUnauthorized, `{"error":{"message":"Encountered invalidated oauth token for user, failing request","type":null,"code":"token_revoked","param":null},"status":401}`)
+
+	repo := &openAIAccountTestRepo{}
+	upstream := &queuedHTTPUpstream{responses: []*http.Response{resp}}
+	svc := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: &config.Config{}}
+	account := &Account{
+		ID:          85,
+		Platform:    PlatformOpenAI,
+		Type:        AccountTypeOAuth,
+		Concurrency: 1,
+		Credentials: map[string]any{"access_token": "test-token"},
+	}
+
+	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
+	require.Error(t, err)
+	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 0, repo.setErrorCalls)
+	require.Contains(t, recorder.Body.String(), "account auto-deleted")
+}
+
+func TestAccountTestService_OpenAI401TokenRevokedDeleteFailureFallsBackToSetError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx, _ := newSoraTestContext()
+
+	resp := newJSONResponse(http.StatusUnauthorized, `{"error":{"message":"Encountered invalidated oauth token for user, failing request","type":null,"code":"token_revoked","param":null},"status":401}`)
+
+	repo := &openAIAccountTestRepo{deleteErr: errors.New("delete failed")}
+	upstream := &queuedHTTPUpstream{responses: []*http.Response{resp}}
+	svc := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: &config.Config{}}
+	account := &Account{
+		ID:          84,
+		Platform:    PlatformOpenAI,
+		Type:        AccountTypeOAuth,
+		Concurrency: 1,
+		Credentials: map[string]any{"access_token": "test-token"},
+	}
+
+	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
+	require.Error(t, err)
+	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 1, repo.setErrorCalls)
+	require.Contains(t, repo.lastErrorMsg, "OpenAI OAuth token revoked")
+}

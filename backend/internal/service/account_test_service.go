@@ -554,12 +554,10 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 			if upstreamMsg != "" {
 				upstreamMsg = truncateForLog([]byte(upstreamMsg), 512)
 			}
-			if deleted, err := tryAutoDeleteDeactivatedOpenAIAccount(ctx, s.accountRepo, account, upstreamMsg, body); deleted {
+			reason := detectOpenAIAutoDeleteReason(account, upstreamMsg, body)
+			if deleted, err := tryAutoDeleteOpenAIAccount(ctx, s.accountRepo, account, reason); deleted {
 				if err != nil {
-					deleteErrMsg := "OpenAI account deactivated (401)"
-					if upstreamMsg != "" {
-						deleteErrMsg = "OpenAI account deactivated (401): " + upstreamMsg
-					}
+					deleteErrMsg := formatOpenAIAutoDeleteStatus(reason, upstreamMsg)
 					_ = s.accountRepo.SetError(ctx, account.ID, deleteErrMsg)
 				} else {
 					errMsg += " (account auto-deleted)"
