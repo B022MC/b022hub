@@ -65,8 +65,9 @@ func (s *tempUnschedCacheStub) DeleteTempUnsched(ctx context.Context, accountID 
 }
 
 type tokenRefresherStub struct {
-	credentials map[string]any
-	err         error
+	credentials  map[string]any
+	err          error
+	refreshCalls int
 }
 
 func (r *tokenRefresherStub) CanRefresh(account *Account) bool {
@@ -78,6 +79,7 @@ func (r *tokenRefresherStub) NeedsRefresh(account *Account, refreshWindowDuratio
 }
 
 func (r *tokenRefresherStub) Refresh(ctx context.Context, account *Account) (map[string]any, error) {
+	r.refreshCalls++
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -308,6 +310,38 @@ func TestTokenRefreshService_RefreshWithRetry_RefreshFailed(t *testing.T) {
 	require.Equal(t, 0, repo.setErrorCalls) // 可重试错误耗尽不标记 error，下个周期继续重试
 }
 
+func TestTokenRefreshService_RefreshWithRetry_OpenAINoRefreshTokenSkipped(t *testing.T) {
+	repo := &tokenRefreshAccountRepo{}
+	invalidator := &tokenCacheInvalidatorStub{}
+	tempCache := &tempUnschedCacheStub{}
+	cfg := &config.Config{
+		TokenRefresh: config.TokenRefreshConfig{
+			MaxRetries:          2,
+			RetryBackoffSeconds: 0,
+		},
+	}
+	service := NewTokenRefreshService(repo, nil, nil, nil, nil, invalidator, nil, cfg, tempCache)
+	until := time.Now().Add(10 * time.Minute)
+	account := &Account{
+		ID:       120,
+		Platform: PlatformOpenAI,
+		Type:     AccountTypeOAuth,
+		Credentials: map[string]any{
+			"access_token": "token-without-refresh",
+		},
+		TempUnschedulableUntil: &until,
+	}
+	refresher := NewOpenAITokenRefresher(nil, nil)
+
+	err := service.refreshWithRetry(context.Background(), account, refresher, refresher, time.Hour)
+	require.NoError(t, err)
+	require.Equal(t, 0, repo.updateCalls)
+	require.Equal(t, 0, invalidator.calls)
+	require.Equal(t, 0, repo.setErrorCalls)
+	require.Equal(t, 1, repo.clearTempCalls)
+	require.Equal(t, 1, tempCache.deleteCalls)
+}
+
 // TestTokenRefreshService_RefreshWithRetry_AntigravityRefreshFailed 测试 Antigravity 刷新失败不设置错误状态
 func TestTokenRefreshService_RefreshWithRetry_AntigravityRefreshFailed(t *testing.T) {
 	repo := &tokenRefreshAccountRepo{}
@@ -390,7 +424,7 @@ func TestTokenRefreshService_RefreshWithRetry_ClearsTempUnschedulable(t *testing
 	err := service.refreshWithRetry(context.Background(), account, refresher, refresher, time.Hour)
 	require.NoError(t, err)
 	require.Equal(t, 1, repo.updateCalls)
-	require.Equal(t, 1, repo.clearTempCalls)  // DB 清除
+	require.Equal(t, 1, repo.clearTempCalls)   // DB 清除
 	require.Equal(t, 1, tempCache.deleteCalls) // Redis 缓存也应清除
 }
 
@@ -456,6 +490,22 @@ func TestIsNonRetryableRefreshError(t *testing.T) {
 			require.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func TestOpenAITokenRefresher_NeedsRefresh_NoRefreshToken(t *testing.T) {
+	refresher := NewOpenAITokenRefresher(nil, nil)
+	expiresAt := time.Now().Add(1 * time.Minute).Format(time.RFC3339)
+	account := &Account{
+		ID:       121,
+		Platform: PlatformOpenAI,
+		Type:     AccountTypeOAuth,
+		Credentials: map[string]any{
+			"access_token": "token",
+			"expires_at":   expiresAt,
+		},
+	}
+
+	require.False(t, refresher.NeedsRefresh(account, 3*time.Minute))
 }
 
 // ========== Path A (refreshAPI) 测试用例 ==========

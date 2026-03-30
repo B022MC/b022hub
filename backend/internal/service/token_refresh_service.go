@@ -254,6 +254,12 @@ func (s *TokenRefreshService) listActiveAccounts(ctx context.Context) ([]Account
 
 // refreshWithRetry 带重试的刷新
 func (s *TokenRefreshService) refreshWithRetry(ctx context.Context, account *Account, refresher TokenRefresher, executor OAuthRefreshExecutor, refreshWindow time.Duration) error {
+	if shouldSkipOpenAIOAuthRefreshForRefreshers(account, refresher, executor) {
+		slog.Info("token_refresh.skipped_no_refresh_token", "account_id", account.ID)
+		s.clearTempUnschedulableIfPresent(ctx, account)
+		return nil
+	}
+
 	var lastErr error
 
 	for attempt := 1; attempt <= s.cfg.MaxRetries; attempt++ {
@@ -346,6 +352,41 @@ func (s *TokenRefreshService) refreshWithRetry(ctx context.Context, account *Acc
 	return lastErr
 }
 
+func shouldSkipOpenAIOAuthRefreshForRefreshers(account *Account, refresher TokenRefresher, executor OAuthRefreshExecutor) bool {
+	if !shouldSkipOpenAIOAuthRefresh(account) {
+		return false
+	}
+	if _, ok := refresher.(*OpenAITokenRefresher); ok {
+		return true
+	}
+	if _, ok := executor.(*OpenAITokenRefresher); ok {
+		return true
+	}
+	return false
+}
+
+func (s *TokenRefreshService) clearTempUnschedulableIfPresent(ctx context.Context, account *Account) {
+	if account.TempUnschedulableUntil == nil || !time.Now().Before(*account.TempUnschedulableUntil) {
+		return
+	}
+	if clearErr := s.accountRepo.ClearTempUnschedulable(ctx, account.ID); clearErr != nil {
+		slog.Warn("token_refresh.clear_temp_unschedulable_failed",
+			"account_id", account.ID,
+			"error", clearErr,
+		)
+	} else {
+		slog.Info("token_refresh.cleared_temp_unschedulable", "account_id", account.ID)
+	}
+	if s.tempUnschedCache != nil {
+		if clearErr := s.tempUnschedCache.DeleteTempUnsched(ctx, account.ID); clearErr != nil {
+			slog.Warn("token_refresh.clear_temp_unsched_cache_failed",
+				"account_id", account.ID,
+				"error", clearErr,
+			)
+		}
+	}
+}
+
 // postRefreshActions 刷新成功后的后续动作（清除错误状态、缓存失效、调度器同步等）
 func (s *TokenRefreshService) postRefreshActions(ctx context.Context, account *Account) {
 	// Antigravity 账户：如果之前是因为缺少 project_id 而标记为 error，现在成功获取到了，清除错误状态
@@ -362,25 +403,7 @@ func (s *TokenRefreshService) postRefreshActions(ctx context.Context, account *A
 		}
 	}
 	// 刷新成功后清除临时不可调度状态（处理 OAuth 401 恢复场景）
-	if account.TempUnschedulableUntil != nil && time.Now().Before(*account.TempUnschedulableUntil) {
-		if clearErr := s.accountRepo.ClearTempUnschedulable(ctx, account.ID); clearErr != nil {
-			slog.Warn("token_refresh.clear_temp_unschedulable_failed",
-				"account_id", account.ID,
-				"error", clearErr,
-			)
-		} else {
-			slog.Info("token_refresh.cleared_temp_unschedulable", "account_id", account.ID)
-		}
-		// 同步清除 Redis 缓存，避免调度器读到过期的临时不可调度状态
-		if s.tempUnschedCache != nil {
-			if clearErr := s.tempUnschedCache.DeleteTempUnsched(ctx, account.ID); clearErr != nil {
-				slog.Warn("token_refresh.clear_temp_unsched_cache_failed",
-					"account_id", account.ID,
-					"error", clearErr,
-				)
-			}
-		}
-	}
+	s.clearTempUnschedulableIfPresent(ctx, account)
 	// 对所有 OAuth 账号调用缓存失效（InvalidateToken 内部根据平台判断是否需要处理）
 	if s.cacheInvalidator != nil && account.Type == AccountTypeOAuth {
 		if err := s.cacheInvalidator.InvalidateToken(ctx, account); err != nil {

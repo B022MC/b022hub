@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -108,9 +109,19 @@ func (r *OpenAITokenRefresher) CanRefresh(account *Account) bool {
 	return account.Platform == PlatformOpenAI && account.Type == AccountTypeOAuth
 }
 
+func shouldSkipOpenAIOAuthRefresh(account *Account) bool {
+	if account == nil || account.Platform != PlatformOpenAI || account.Type != AccountTypeOAuth {
+		return false
+	}
+	return strings.TrimSpace(account.GetCredential("refresh_token")) == ""
+}
+
 // NeedsRefresh 检查token是否需要刷新
 // 基于 expires_at 字段判断是否在刷新窗口内
 func (r *OpenAITokenRefresher) NeedsRefresh(account *Account, refreshWindow time.Duration) bool {
+	if shouldSkipOpenAIOAuthRefresh(account) {
+		return false
+	}
 	expiresAt := account.GetCredentialAsTime("expires_at")
 	if expiresAt == nil {
 		return false
