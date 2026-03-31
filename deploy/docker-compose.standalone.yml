@@ -80,6 +80,9 @@ services:
       # Timezone Configuration
       # =======================================================================
       - TZ=${TZ:-Asia/Shanghai}
+      - GATEWAY_OPENAI_RELOGIN_ENABLED=${GATEWAY_OPENAI_RELOGIN_ENABLED:-false}
+      - GATEWAY_OPENAI_RELOGIN_BASE_URL=${GATEWAY_OPENAI_RELOGIN_BASE_URL:-}
+      - GATEWAY_OPENAI_RELOGIN_TIMEOUT_SECONDS=${GATEWAY_OPENAI_RELOGIN_TIMEOUT_SECONDS:-45}
 
       # =======================================================================
       # Gemini OAuth Configuration (optional)

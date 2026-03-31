@@ -228,35 +228,54 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 	switchCount := 0
 	failedAccountIDs := make(map[int64]struct{})
 	sameAccountRetryCount := make(map[int64]int)
+	recoveredUnauthorizedAccountIDs := make(map[int64]struct{})
+	var forcedSelection *service.AccountSelectionResult
 	var lastFailoverErr *service.UpstreamFailoverError
 
 	for {
-		// Select account supporting the requested model
-		reqLog.Debug("openai.account_selecting", zap.Int("excluded_account_count", len(failedAccountIDs)))
-		selection, scheduleDecision, err := h.gatewayService.SelectAccountWithScheduler(
-			c.Request.Context(),
-			apiKey.GroupID,
-			previousResponseID,
-			sessionHash,
-			reqModel,
-			failedAccountIDs,
-			service.OpenAIUpstreamTransportAny,
+		var (
+			selection        *service.AccountSelectionResult
+			scheduleDecision service.OpenAIAccountScheduleDecision
+			err              error
 		)
-		if err != nil {
-			reqLog.Warn("openai.account_select_failed",
-				zap.Error(err),
-				zap.Int("excluded_account_count", len(failedAccountIDs)),
+		if forcedSelection != nil {
+			selection = forcedSelection
+			forcedSelection = nil
+			if selection != nil && selection.Account != nil {
+				scheduleDecision = service.OpenAIAccountScheduleDecision{
+					Layer:               "same_account_recovery",
+					SelectedAccountID:   selection.Account.ID,
+					SelectedAccountType: selection.Account.Type,
+				}
+			}
+		} else {
+			// Select account supporting the requested model
+			reqLog.Debug("openai.account_selecting", zap.Int("excluded_account_count", len(failedAccountIDs)))
+			selection, scheduleDecision, err = h.gatewayService.SelectAccountWithScheduler(
+				c.Request.Context(),
+				apiKey.GroupID,
+				previousResponseID,
+				sessionHash,
+				reqModel,
+				failedAccountIDs,
+				service.OpenAIUpstreamTransportAny,
 			)
-			if len(failedAccountIDs) == 0 {
-				h.handleStreamingAwareError(c, http.StatusServiceUnavailable, "api_error", "Service temporarily unavailable", streamStarted)
+			if err != nil {
+				reqLog.Warn("openai.account_select_failed",
+					zap.Error(err),
+					zap.Int("excluded_account_count", len(failedAccountIDs)),
+				)
+				if len(failedAccountIDs) == 0 {
+					h.handleStreamingAwareError(c, http.StatusServiceUnavailable, "api_error", "Service temporarily unavailable", streamStarted)
+					return
+				}
+				if lastFailoverErr != nil {
+					h.handleFailoverExhausted(c, lastFailoverErr, streamStarted)
+				} else {
+					h.handleFailoverExhaustedSimple(c, 502, streamStarted)
+				}
 				return
 			}
-			if lastFailoverErr != nil {
-				h.handleFailoverExhausted(c, lastFailoverErr, streamStarted)
-			} else {
-				h.handleFailoverExhaustedSimple(c, 502, streamStarted)
-			}
-			return
 		}
 		if selection == nil || selection.Account == nil {
 			h.handleStreamingAwareError(c, http.StatusServiceUnavailable, "api_error", "No available accounts", streamStarted)
@@ -305,6 +324,16 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 			var failoverErr *service.UpstreamFailoverError
 			if errors.As(err, &failoverErr) {
 				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+				if retrySelection, recovered := h.tryRecoverOpenAIUnauthorizedAccount(
+					c.Request.Context(),
+					reqLog,
+					account,
+					failoverErr,
+					recoveredUnauthorizedAccountIDs,
+				); recovered {
+					forcedSelection = retrySelection
+					continue
+				}
 				// 池模式：同账号重试
 				if failoverErr.RetryableOnSameAccount {
 					retryLimit := account.GetPoolModeRetryCount()
@@ -598,60 +627,72 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 	switchCount := 0
 	failedAccountIDs := make(map[int64]struct{})
 	sameAccountRetryCount := make(map[int64]int)
+	recoveredUnauthorizedAccountIDs := make(map[int64]struct{})
+	var forcedSelection *service.AccountSelectionResult
 	var lastFailoverErr *service.UpstreamFailoverError
 
 	for {
-		// 清除上一次迭代的降级模型标记，避免残留影响本次迭代
-		c.Set("openai_messages_fallback_model", "")
-		reqLog.Debug("openai_messages.account_selecting", zap.Int("excluded_account_count", len(failedAccountIDs)))
-		selection, scheduleDecision, err := h.gatewayService.SelectAccountWithScheduler(
-			c.Request.Context(),
-			apiKey.GroupID,
-			"", // no previous_response_id
-			sessionHash,
-			reqModel,
-			failedAccountIDs,
-			service.OpenAIUpstreamTransportAny,
+		var (
+			selection        *service.AccountSelectionResult
+			scheduleDecision service.OpenAIAccountScheduleDecision
+			err              error
 		)
-		if err != nil {
-			reqLog.Warn("openai_messages.account_select_failed",
-				zap.Error(err),
-				zap.Int("excluded_account_count", len(failedAccountIDs)),
+		if forcedSelection != nil {
+			selection = forcedSelection
+			forcedSelection = nil
+		} else {
+			// 清除上一次迭代的降级模型标记，避免残留影响本次迭代
+			c.Set("openai_messages_fallback_model", "")
+			reqLog.Debug("openai_messages.account_selecting", zap.Int("excluded_account_count", len(failedAccountIDs)))
+			selection, scheduleDecision, err = h.gatewayService.SelectAccountWithScheduler(
+				c.Request.Context(),
+				apiKey.GroupID,
+				"", // no previous_response_id
+				sessionHash,
+				reqModel,
+				failedAccountIDs,
+				service.OpenAIUpstreamTransportAny,
 			)
-			// 首次调度失败 + 有默认映射模型 → 用默认模型重试
-			if len(failedAccountIDs) == 0 {
-				defaultModel := ""
-				if apiKey.Group != nil {
-					defaultModel = apiKey.Group.DefaultMappedModel
-				}
-				if defaultModel != "" && defaultModel != reqModel {
-					reqLog.Info("openai_messages.fallback_to_default_model",
-						zap.String("default_mapped_model", defaultModel),
-					)
-					selection, scheduleDecision, err = h.gatewayService.SelectAccountWithScheduler(
-						c.Request.Context(),
-						apiKey.GroupID,
-						"",
-						sessionHash,
-						defaultModel,
-						failedAccountIDs,
-						service.OpenAIUpstreamTransportAny,
-					)
-					if err == nil && selection != nil {
-						c.Set("openai_messages_fallback_model", defaultModel)
+			if err != nil {
+				reqLog.Warn("openai_messages.account_select_failed",
+					zap.Error(err),
+					zap.Int("excluded_account_count", len(failedAccountIDs)),
+				)
+				// 首次调度失败 + 有默认映射模型 → 用默认模型重试
+				if len(failedAccountIDs) == 0 {
+					defaultModel := ""
+					if apiKey.Group != nil {
+						defaultModel = apiKey.Group.DefaultMappedModel
 					}
-				}
-				if err != nil {
-					h.anthropicStreamingAwareError(c, http.StatusServiceUnavailable, "api_error", "Service temporarily unavailable", streamStarted)
+					if defaultModel != "" && defaultModel != reqModel {
+						reqLog.Info("openai_messages.fallback_to_default_model",
+							zap.String("default_mapped_model", defaultModel),
+						)
+						selection, scheduleDecision, err = h.gatewayService.SelectAccountWithScheduler(
+							c.Request.Context(),
+							apiKey.GroupID,
+							"",
+							sessionHash,
+							defaultModel,
+							failedAccountIDs,
+							service.OpenAIUpstreamTransportAny,
+						)
+						if err == nil && selection != nil {
+							c.Set("openai_messages_fallback_model", defaultModel)
+						}
+					}
+					if err != nil {
+						h.anthropicStreamingAwareError(c, http.StatusServiceUnavailable, "api_error", "Service temporarily unavailable", streamStarted)
+						return
+					}
+				} else {
+					if lastFailoverErr != nil {
+						h.handleAnthropicFailoverExhausted(c, lastFailoverErr, streamStarted)
+					} else {
+						h.anthropicStreamingAwareError(c, http.StatusBadGateway, "api_error", "Upstream request failed", streamStarted)
+					}
 					return
 				}
-			} else {
-				if lastFailoverErr != nil {
-					h.handleAnthropicFailoverExhausted(c, lastFailoverErr, streamStarted)
-				} else {
-					h.anthropicStreamingAwareError(c, http.StatusBadGateway, "api_error", "Upstream request failed", streamStarted)
-				}
-				return
 			}
 		}
 		if selection == nil || selection.Account == nil {
@@ -694,6 +735,16 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 			var failoverErr *service.UpstreamFailoverError
 			if errors.As(err, &failoverErr) {
 				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+				if retrySelection, recovered := h.tryRecoverOpenAIUnauthorizedAccount(
+					c.Request.Context(),
+					reqLog,
+					account,
+					failoverErr,
+					recoveredUnauthorizedAccountIDs,
+				); recovered {
+					forcedSelection = retrySelection
+					continue
+				}
 				// 池模式：同账号重试
 				if failoverErr.RetryableOnSameAccount {
 					retryLimit := account.GetPoolModeRetryCount()
@@ -1001,6 +1052,37 @@ func (h *OpenAIGatewayHandler) acquireResponsesAccountSlot(
 		reqLog.Warn("openai.bind_sticky_session_failed", zap.Int64("account_id", account.ID), zap.Error(err))
 	}
 	return wrapReleaseOnDone(ctx, accountReleaseFunc), true
+}
+
+func (h *OpenAIGatewayHandler) tryRecoverOpenAIUnauthorizedAccount(
+	_ context.Context,
+	reqLog *zap.Logger,
+	account *service.Account,
+	failoverErr *service.UpstreamFailoverError,
+	attempted map[int64]struct{},
+) (*service.AccountSelectionResult, bool) {
+	if h == nil || h.gatewayService == nil || reqLog == nil || account == nil || failoverErr == nil {
+		return nil, false
+	}
+	if failoverErr.StatusCode != http.StatusUnauthorized {
+		return nil, false
+	}
+	if account.Platform != service.PlatformOpenAI || account.Type != service.AccountTypeOAuth {
+		return nil, false
+	}
+	if attempted != nil {
+		if _, exists := attempted[account.ID]; exists {
+			return nil, false
+		}
+		attempted[account.ID] = struct{}{}
+	}
+
+	// 401 恢复改为异步队列模式：运行时路径不再同步重登并重试当前账号，
+	// 而是交给限流/错误处理逻辑去做“移到未分组 + 入队重登”。
+	reqLog.Warn("openai.unauthorized_recovery_deferred_to_queue",
+		zap.Int64("account_id", account.ID),
+	)
+	return nil, false
 }
 
 // ResponsesWebSocket handles OpenAI Responses API WebSocket ingress endpoint

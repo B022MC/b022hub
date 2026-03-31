@@ -1591,6 +1591,33 @@ func (s *OpenAIGatewayService) schedulingConfig() config.GatewaySchedulingConfig
 	}
 }
 
+func (s *OpenAIGatewayService) TryRecoverUnauthorizedAccount(ctx context.Context, account *Account) (*Account, string, error) {
+	if s == nil || s.openAITokenProvider == nil {
+		return nil, "", errors.New("openai token provider is not configured")
+	}
+	return s.openAITokenProvider.RecoverUnauthorizedAccount(ctx, account)
+}
+
+func (s *OpenAIGatewayService) BuildSameAccountRetrySelection(account *Account) *AccountSelectionResult {
+	if account == nil || !account.IsOpenAI() || !account.IsActive() {
+		return nil
+	}
+	maxConcurrency := account.Concurrency
+	if maxConcurrency <= 0 {
+		maxConcurrency = 1
+	}
+	cfg := s.schedulingConfig()
+	return &AccountSelectionResult{
+		Account: account,
+		WaitPlan: &AccountWaitPlan{
+			AccountID:      account.ID,
+			MaxConcurrency: maxConcurrency,
+			Timeout:        cfg.FallbackWaitTimeout,
+			MaxWaiting:     cfg.FallbackMaxWaiting,
+		},
+	}
+}
+
 // GetAccessToken gets the access token for an OpenAI account
 func (s *OpenAIGatewayService) GetAccessToken(ctx context.Context, account *Account) (string, string, error) {
 	switch account.Type {

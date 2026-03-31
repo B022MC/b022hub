@@ -322,6 +322,22 @@ func TestEnhanceCSPPolicy(t *testing.T) {
 		assert.Contains(t, enhanced, CloudflareInsightsDomain)
 	})
 
+	t.Run("adds_local_helper_sources_to_connect_src", func(t *testing.T) {
+		policy := "default-src 'self'; connect-src 'self' https:"
+		enhanced := enhanceCSPPolicy(policy)
+
+		for _, source := range localHelperConnectSources {
+			assert.Contains(t, enhanced, source)
+		}
+	})
+
+	t.Run("does_not_duplicate_local_helper_sources", func(t *testing.T) {
+		policy := "default-src 'self'; connect-src 'self' https: http://127.0.0.1:*"
+		enhanced := enhanceCSPPolicy(policy)
+
+		assert.Equal(t, 1, strings.Count(enhanced, "http://127.0.0.1:*"))
+	})
+
 	t.Run("preserves_existing_nonce", func(t *testing.T) {
 		policy := "script-src 'self' 'nonce-existing'"
 		enhanced := enhanceCSPPolicy(policy)

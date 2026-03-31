@@ -1,11 +1,11 @@
 # =============================================================================
-# b022hub Docker Compose - Local Development Build
+# b022hub Docker Compose - Server Source Build
 # =============================================================================
-# Build from local source code for testing changes.
-#
-# Usage:
-#   cd deploy
-#   docker compose -f docker-compose.dev.yml up --build
+# Build the current local source tree on a remote Linux server.
+# This variant is intended for the deployment model where:
+#   - sub2api runs on the server in Docker
+#   - openai_pool_orchestrator runs on your local machine
+#   - FRP/Tailscale/Tunnel exposes a server-reachable URL for relogin
 # =============================================================================
 
 services:
@@ -13,19 +13,21 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    container_name: sub2api-dev
+    container_name: sub2api-server
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    ulimits:
+      nofile:
+        soft: 100000
+        hard: 100000
     ports:
-      - "${BIND_HOST:-127.0.0.1}:${SERVER_PORT:-8080}:8080"
+      - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
     volumes:
       - ./data:/app/data
     environment:
       - AUTO_SETUP=true
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
-      - SERVER_MODE=debug
+      - SERVER_MODE=${SERVER_MODE:-release}
       - RUN_MODE=${RUN_MODE:-standard}
       - DATABASE_HOST=postgres
       - DATABASE_PORT=5432
@@ -33,18 +35,37 @@ services:
       - DATABASE_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       - DATABASE_DBNAME=${POSTGRES_DB:-sub2api}
       - DATABASE_SSLMODE=disable
+      - DATABASE_MAX_OPEN_CONNS=${DATABASE_MAX_OPEN_CONNS:-50}
+      - DATABASE_MAX_IDLE_CONNS=${DATABASE_MAX_IDLE_CONNS:-10}
+      - DATABASE_CONN_MAX_LIFETIME_MINUTES=${DATABASE_CONN_MAX_LIFETIME_MINUTES:-30}
+      - DATABASE_CONN_MAX_IDLE_TIME_MINUTES=${DATABASE_CONN_MAX_IDLE_TIME_MINUTES:-5}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_POOL_SIZE=${REDIS_POOL_SIZE:-1024}
+      - REDIS_MIN_IDLE_CONNS=${REDIS_MIN_IDLE_CONNS:-10}
+      - REDIS_ENABLE_TLS=${REDIS_ENABLE_TLS:-false}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@sub2api.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - JWT_SECRET=${JWT_SECRET:-}
+      - JWT_EXPIRE_HOUR=${JWT_EXPIRE_HOUR:-24}
       - TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-}
       - TZ=${TZ:-Asia/Shanghai}
       - GATEWAY_OPENAI_RELOGIN_ENABLED=${GATEWAY_OPENAI_RELOGIN_ENABLED:-false}
       - GATEWAY_OPENAI_RELOGIN_BASE_URL=${GATEWAY_OPENAI_RELOGIN_BASE_URL:-}
       - GATEWAY_OPENAI_RELOGIN_TIMEOUT_SECONDS=${GATEWAY_OPENAI_RELOGIN_TIMEOUT_SECONDS:-45}
+      - GEMINI_OAUTH_CLIENT_ID=${GEMINI_OAUTH_CLIENT_ID:-}
+      - GEMINI_OAUTH_CLIENT_SECRET=${GEMINI_OAUTH_CLIENT_SECRET:-}
+      - GEMINI_OAUTH_SCOPES=${GEMINI_OAUTH_SCOPES:-}
+      - GEMINI_QUOTA_POLICY=${GEMINI_QUOTA_POLICY:-}
+      - GEMINI_CLI_OAUTH_CLIENT_SECRET=${GEMINI_CLI_OAUTH_CLIENT_SECRET:-}
+      - ANTIGRAVITY_OAUTH_CLIENT_SECRET=${ANTIGRAVITY_OAUTH_CLIENT_SECRET:-}
+      - SECURITY_URL_ALLOWLIST_ENABLED=${SECURITY_URL_ALLOWLIST_ENABLED:-false}
+      - SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=${SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP:-true}
+      - SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS=${SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS:-false}
+      - SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS=${SECURITY_URL_ALLOWLIST_UPSTREAM_HOSTS:-}
+      - UPDATE_PROXY_URL=${UPDATE_PROXY_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -61,8 +82,12 @@ services:
 
   postgres:
     image: postgres:18-alpine
-    container_name: sub2api-postgres-dev
+    container_name: sub2api-postgres-server
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 100000
+        hard: 100000
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
     environment:
@@ -82,17 +107,21 @@ services:
 
   redis:
     image: redis:8-alpine
-    container_name: sub2api-redis-dev
+    container_name: sub2api-redis-server
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 100000
+        hard: 100000
     volumes:
       - ./redis_data:/data
     command: >
-        sh -c '
-          redis-server
-          --save 60 1
-          --appendonly yes
-          --appendfsync everysec
-          ${REDIS_PASSWORD:+--requirepass "$REDIS_PASSWORD"}'
+      sh -c '
+        redis-server
+        --save 60 1
+        --appendonly yes
+        --appendfsync everysec
+        ${REDIS_PASSWORD:+--requirepass "$REDIS_PASSWORD"}'
     environment:
       - TZ=${TZ:-Asia/Shanghai}
       - REDISCLI_AUTH=${REDIS_PASSWORD:-}

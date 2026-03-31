@@ -1,0 +1,14 @@
+serverAddr = "101.32.141.118"
+serverPort = 7000
+
+auth.method = "token"
+auth.token = "YOUR_FRP_TOKEN"
+
+loginFailExit = false
+
+[[proxies]]
+name = "openai-orchestrator"
+type = "tcp"
+localIP = "host.docker.internal"
+localPort = 18421
+remotePort = 18421

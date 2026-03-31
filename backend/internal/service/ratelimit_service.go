@@ -116,13 +116,11 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 		upstreamMsg = truncateForLog([]byte(upstreamMsg), 512)
 	}
 
-	if shouldAutoDeleteOpenAIOAuthTokenRevoked(account, statusCode, responseBody) {
-		deleteMsg := formatOpenAIOAuthTokenRevokedStatus(upstreamMsg)
-		if err := s.accountRepo.Delete(ctx, account.ID); err != nil {
-			slog.Warn("openai_oauth_token_revoked_delete_failed", "account_id", account.ID, "error", err)
-			s.handleAuthError(ctx, account, deleteMsg)
+	if shouldMoveOpenAIOAuthTokenRevokedToUngrouped(account, statusCode, responseBody) {
+		if err := moveOpenAIOAuthTokenRevokedAccountToUngrouped(ctx, s.accountRepo, account, upstreamMsg); err != nil {
+			slog.Warn("openai_oauth_token_revoked_ungroup_failed", "account_id", account.ID, "error", err)
 		} else {
-			slog.Info("openai_oauth_token_revoked_account_deleted", "account_id", account.ID)
+			slog.Info("openai_oauth_token_revoked_account_ungrouped", "account_id", account.ID)
 		}
 		return true
 	}
@@ -248,7 +246,7 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 	return shouldDisable
 }
 
-func shouldAutoDeleteOpenAIOAuthTokenRevoked(account *Account, statusCode int, responseBody []byte) bool {
+func shouldMoveOpenAIOAuthTokenRevokedToUngrouped(account *Account, statusCode int, responseBody []byte) bool {
 	if account == nil || statusCode != http.StatusUnauthorized {
 		return false
 	}
@@ -257,15 +255,21 @@ func shouldAutoDeleteOpenAIOAuthTokenRevoked(account *Account, statusCode int, r
 	}
 
 	code, message := extractOpenAIErrorCodeAndMessage(responseBody)
-	if code == "token_revoked" {
+	if code == "token_revoked" || code == "token_invalidated" {
 		return true
 	}
 	if strings.Contains(message, "invalidated oauth token") {
 		return true
 	}
+	if strings.Contains(message, "authentication token has been invalidated") {
+		return true
+	}
 
 	raw := strings.ToLower(strings.TrimSpace(string(responseBody)))
-	return strings.Contains(raw, `"code":"token_revoked"`) || strings.Contains(raw, "invalidated oauth token")
+	return strings.Contains(raw, `"code":"token_revoked"`) ||
+		strings.Contains(raw, `"code":"token_invalidated"`) ||
+		strings.Contains(raw, "invalidated oauth token") ||
+		strings.Contains(raw, "authentication token has been invalidated")
 }
 
 func extractOpenAIErrorCodeAndMessage(body []byte) (string, string) {
@@ -287,6 +291,34 @@ func formatOpenAIOAuthTokenRevokedStatus(upstreamMsg string) string {
 		return msg
 	}
 	return msg + ": " + upstreamMsg
+}
+
+func moveOpenAIOAuthTokenRevokedAccountToUngrouped(
+	ctx context.Context,
+	repo AccountRepository,
+	account *Account,
+	upstreamMsg string,
+) error {
+	if repo == nil || account == nil {
+		return nil
+	}
+
+	statusMsg := formatOpenAIOAuthTokenRevokedStatus(upstreamMsg)
+	if err := repo.BindGroups(ctx, account.ID, nil); err != nil {
+		if setErr := repo.SetError(ctx, account.ID, statusMsg); setErr != nil {
+			slog.Warn("openai_oauth_token_revoked_set_error_failed", "account_id", account.ID, "error", setErr)
+		}
+		return err
+	}
+
+	account.GroupIDs = nil
+	account.AccountGroups = nil
+	if err := repo.SetError(ctx, account.ID, statusMsg); err != nil {
+		slog.Warn("openai_oauth_token_revoked_set_error_failed", "account_id", account.ID, "error", err)
+	} else {
+		account.ErrorMessage = statusMsg
+	}
+	return nil
 }
 
 // PreCheckUsage proactively checks local quota before dispatching a request.

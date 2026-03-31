@@ -221,6 +221,16 @@ func ProvideRateLimitService(
 	return svc
 }
 
+func ProvideAccountTestService(
+	accountRepo AccountRepository,
+	geminiTokenProvider *GeminiTokenProvider,
+	antigravityGatewayService *AntigravityGatewayService,
+	httpUpstream HTTPUpstream,
+	cfg *config.Config,
+) *AccountTestService {
+	return NewAccountTestService(accountRepo, geminiTokenProvider, antigravityGatewayService, httpUpstream, cfg)
+}
+
 // ProvideOpsMetricsCollector creates and starts OpsMetricsCollector.
 func ProvideOpsMetricsCollector(
 	opsRepo OpsRepository,
@@ -455,7 +465,7 @@ var ProviderSet = wire.NewSet(
 	NewAntigravityGatewayService,
 	ProvideRateLimitService,
 	NewAccountUsageService,
-	NewAccountTestService,
+	ProvideAccountTestService,
 	ProvideSettingService,
 	NewDataManagementService,
 	ProvideBackupService,

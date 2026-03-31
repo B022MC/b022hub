@@ -21,8 +21,10 @@ type openAIAccountTestRepo struct {
 	updatedExtra  map[string]any
 	rateLimitedID int64
 	rateLimitedAt *time.Time
-	deleteCalls   int
-	deleteErr     error
+	bindCalls     int
+	bindErr       error
+	boundAccount  int64
+	boundGroupIDs []int64
 	setErrorCalls int
 	lastErrorMsg  string
 }
@@ -38,9 +40,11 @@ func (r *openAIAccountTestRepo) SetRateLimited(_ context.Context, id int64, rese
 	return nil
 }
 
-func (r *openAIAccountTestRepo) Delete(_ context.Context, _ int64) error {
-	r.deleteCalls++
-	return r.deleteErr
+func (r *openAIAccountTestRepo) BindGroups(_ context.Context, accountID int64, groupIDs []int64) error {
+	r.bindCalls++
+	r.boundAccount = accountID
+	r.boundGroupIDs = append([]int64(nil), groupIDs...)
+	return r.bindErr
 }
 
 func (r *openAIAccountTestRepo) SetError(_ context.Context, _ int64, errorMsg string) error {
@@ -137,12 +141,12 @@ func TestAccountTestService_OpenAI401AccountDeactivatedDoesNotDeleteAccount(t *t
 
 	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
 	require.Error(t, err)
-	require.Equal(t, 0, repo.deleteCalls)
+	require.Equal(t, 0, repo.bindCalls)
 	require.Equal(t, 0, repo.setErrorCalls)
-	require.NotContains(t, recorder.Body.String(), "account auto-deleted")
+	require.NotContains(t, recorder.Body.String(), "account moved to ungrouped")
 }
 
-func TestAccountTestService_OpenAI401TokenRevokedAutoDeletesAccount(t *testing.T) {
+func TestAccountTestService_OpenAI401TokenRevokedMovesAccountToUngrouped(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, recorder := newSoraTestContext()
 
@@ -161,18 +165,47 @@ func TestAccountTestService_OpenAI401TokenRevokedAutoDeletesAccount(t *testing.T
 
 	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
 	require.Error(t, err)
-	require.Equal(t, 1, repo.deleteCalls)
-	require.Equal(t, 0, repo.setErrorCalls)
-	require.Contains(t, recorder.Body.String(), "account auto-deleted")
+	require.Equal(t, 1, repo.bindCalls)
+	require.Equal(t, int64(85), repo.boundAccount)
+	require.Empty(t, repo.boundGroupIDs)
+	require.Equal(t, 1, repo.setErrorCalls)
+	require.Contains(t, repo.lastErrorMsg, "OpenAI OAuth token revoked (401)")
+	require.Contains(t, recorder.Body.String(), "account moved to ungrouped")
 }
 
-func TestAccountTestService_OpenAI401TokenRevokedDeleteFailureSetsError(t *testing.T) {
+func TestAccountTestService_OpenAI401TokenInvalidatedMovesAccountToUngrouped(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx, recorder := newSoraTestContext()
+
+	resp := newJSONResponse(http.StatusUnauthorized, `{"error":{"message":"Your authentication token has been invalidated. Please try signing in again.","type":"invalid_request_error","code":"token_invalidated","param":null},"status":401}`)
+
+	repo := &openAIAccountTestRepo{}
+	upstream := &queuedHTTPUpstream{responses: []*http.Response{resp}}
+	svc := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: &config.Config{}}
+	account := &Account{
+		ID:          87,
+		Platform:    PlatformOpenAI,
+		Type:        AccountTypeOAuth,
+		Concurrency: 1,
+		Credentials: map[string]any{"access_token": "test-token"},
+	}
+
+	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
+	require.Error(t, err)
+	require.Equal(t, 1, repo.bindCalls)
+	require.Equal(t, int64(87), repo.boundAccount)
+	require.Empty(t, repo.boundGroupIDs)
+	require.Equal(t, 1, repo.setErrorCalls)
+	require.Contains(t, recorder.Body.String(), "account moved to ungrouped")
+}
+
+func TestAccountTestService_OpenAI401TokenRevokedUngroupFailureSetsError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, recorder := newSoraTestContext()
 
 	resp := newJSONResponse(http.StatusUnauthorized, `{"error":{"message":"Encountered invalidated oauth token for user, failing request","type":null,"code":"token_revoked","param":null},"status":401}`)
 
-	repo := &openAIAccountTestRepo{deleteErr: errors.New("boom")}
+	repo := &openAIAccountTestRepo{bindErr: errors.New("boom")}
 	upstream := &queuedHTTPUpstream{responses: []*http.Response{resp}}
 	svc := &AccountTestService{accountRepo: repo, httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
@@ -185,8 +218,8 @@ func TestAccountTestService_OpenAI401TokenRevokedDeleteFailureSetsError(t *testi
 
 	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
 	require.Error(t, err)
-	require.Equal(t, 1, repo.deleteCalls)
+	require.Equal(t, 1, repo.bindCalls)
 	require.Equal(t, 1, repo.setErrorCalls)
 	require.Contains(t, repo.lastErrorMsg, "OpenAI OAuth token revoked (401)")
-	require.NotContains(t, recorder.Body.String(), "account auto-deleted")
+	require.NotContains(t, recorder.Body.String(), "account moved to ungrouped")
 }

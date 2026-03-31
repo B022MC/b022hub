@@ -321,3 +321,17 @@ func jitterLockWait(base time.Duration) time.Duration {
 	factor := minFactor + rand.Float64()*(maxFactor-minFactor)
 	return time.Duration(float64(base) * factor)
 }
+
+func (p *OpenAITokenProvider) RecoverUnauthorizedAccount(ctx context.Context, account *Account) (*Account, string, error) {
+	_ = ctx
+	if p == nil {
+		return nil, "", errors.New("openai token provider is nil")
+	}
+	if account == nil {
+		return nil, "", errors.New("account is nil")
+	}
+	if account.Platform != PlatformOpenAI || account.Type != AccountTypeOAuth {
+		return nil, "", nil
+	}
+	return nil, "", errors.New("openai unauthorized recovery is disabled")
+}

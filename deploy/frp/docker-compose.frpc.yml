@@ -1,0 +1,8 @@
+services:
+  frpc:
+    image: snowdreamtech/frpc:0.61.1
+    container_name: sub2api-local-frpc
+    restart: unless-stopped
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml:ro
+    command: ["-c", "/etc/frp/frpc.toml"]

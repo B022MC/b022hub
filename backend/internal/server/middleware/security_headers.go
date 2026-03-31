@@ -20,6 +20,15 @@ const (
 	CloudflareInsightsDomain = "https://static.cloudflareinsights.com"
 )
 
+var localHelperConnectSources = []string{
+	"http://127.0.0.1:*",
+	"http://localhost:*",
+	"http://[::1]:*",
+	"https://127.0.0.1:*",
+	"https://localhost:*",
+	"https://[::1]:*",
+}
+
 // GenerateNonce generates a cryptographically secure random nonce.
 // 返回 error 以确保调用方在 crypto/rand 失败时能正确降级。
 func GenerateNonce() (string, error) {
@@ -109,6 +118,12 @@ func enhanceCSPPolicy(policy string) string {
 	// Add Cloudflare Insights domain to script-src if not present
 	if !strings.Contains(policy, CloudflareInsightsDomain) {
 		policy = addToDirective(policy, "script-src", CloudflareInsightsDomain)
+	}
+
+	for _, source := range localHelperConnectSources {
+		if !strings.Contains(policy, source) {
+			policy = addToDirective(policy, "connect-src", source)
+		}
 	}
 
 	return policy

@@ -264,6 +264,23 @@ docker compose -f docker-compose.local.yml logs -f sub2api
 
 **推荐：** 使用 `docker-compose.local.yml`（脚本部署）以便更轻松地管理数据。
 
+#### OpenAI 重登与本地 Orchestrator
+
+如果你的部署形态是 `sub2api` 在服务器、`openai_pool_orchestrator` 只在本地运行，那么需要先用 FRP、Tailscale 或 Cloudflare Tunnel 暴露一个“服务器可访问”的地址，再让 `sub2api` 请求这个地址。
+
+在 `deploy/.env` 中增加或修改：
+
+```bash
+GATEWAY_OPENAI_RELOGIN_ENABLED=true
+GATEWAY_OPENAI_RELOGIN_BASE_URL=https://openai-relogin.example.com
+GATEWAY_OPENAI_RELOGIN_TIMEOUT_SECONDS=45
+```
+
+注意：
+- `GATEWAY_OPENAI_RELOGIN_BASE_URL` 必须是服务器上的 `sub2api` 能访问到的 URL。
+- 除非 orchestrator 和 `sub2api` 在同一台机器，否则不要填写 `localhost`、`127.0.0.1` 或本机路径。
+- `deploy/docker-compose.dev.yml` 的行为不同：本地开发时如果这里留空，会自动回退到内置的 `openai-relogin` 容器。
+
 #### 启用“数据管理”功能（datamanagementd）
 
 如需启用管理后台“数据管理”，需要额外部署宿主机数据管理进程 `datamanagementd`。

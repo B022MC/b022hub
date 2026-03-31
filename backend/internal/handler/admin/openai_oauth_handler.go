@@ -26,7 +26,10 @@ func oauthPlatformFromPath(c *gin.Context) string {
 }
 
 // NewOpenAIOAuthHandler creates a new OpenAI OAuth handler
-func NewOpenAIOAuthHandler(openaiOAuthService *service.OpenAIOAuthService, adminService service.AdminService) *OpenAIOAuthHandler {
+func NewOpenAIOAuthHandler(
+	openaiOAuthService *service.OpenAIOAuthService,
+	adminService service.AdminService,
+) *OpenAIOAuthHandler {
 	return &OpenAIOAuthHandler{
 		openaiOAuthService: openaiOAuthService,
 		adminService:       adminService,
@@ -101,6 +104,10 @@ type OpenAIRefreshTokenRequest struct {
 	RT           string `json:"rt"`
 	ClientID     string `json:"client_id"`
 	ProxyID      *int64 `json:"proxy_id"`
+}
+
+type OpenAILatestOTPRequest struct {
+	TimeoutSeconds int `json:"timeout_seconds"`
 }
 
 // RefreshToken refreshes an OpenAI OAuth token

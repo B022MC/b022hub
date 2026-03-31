@@ -546,12 +546,12 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 				_ = s.accountRepo.SetRateLimited(ctx, account.ID, *resetAt)
 				account.RateLimitResetAt = resetAt
 			}
-			if shouldAutoDeleteOpenAIOAuthTokenRevoked(account, resp.StatusCode, body) {
+			if shouldMoveOpenAIOAuthTokenRevokedToUngrouped(account, resp.StatusCode, body) {
 				upstreamMsg := sanitizeUpstreamErrorMessage(strings.TrimSpace(extractUpstreamErrorMessage(body)))
-				if err := s.accountRepo.Delete(ctx, account.ID); err != nil {
-					_ = s.accountRepo.SetError(ctx, account.ID, formatOpenAIOAuthTokenRevokedStatus(upstreamMsg))
+				if err := moveOpenAIOAuthTokenRevokedAccountToUngrouped(ctx, s.accountRepo, account, upstreamMsg); err != nil {
+					log.Printf("[AccountTest] failed to move revoked OpenAI OAuth account to ungrouped: account=%d err=%v", account.ID, err)
 				} else {
-					errMsg := fmt.Sprintf("API returned %d: %s (account auto-deleted)", resp.StatusCode, string(body))
+					errMsg := fmt.Sprintf("API returned %d: %s (account moved to ungrouped)", resp.StatusCode, string(body))
 					return s.sendErrorAndEnd(c, errMsg)
 				}
 			}

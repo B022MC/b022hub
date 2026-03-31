@@ -106,6 +106,24 @@ docker compose -f docker-compose.local.yml logs -f sub2api
 
 **Recommendation:** Use `docker-compose.local.yml` (deployed by `docker-deploy.sh`) for easier data management and migration.
 
+### OpenAI Relogin With Local Orchestrator
+
+If `sub2api` runs on a server but `openai_pool_orchestrator` only runs on your local machine, expose the orchestrator with FRP, Tailscale, or Cloudflare Tunnel and point `sub2api` at that external URL.
+
+Set these variables in `deploy/.env` before starting Docker Compose:
+
+```bash
+GATEWAY_OPENAI_RELOGIN_ENABLED=true
+GATEWAY_OPENAI_RELOGIN_BASE_URL=https://openai-relogin.example.com
+GATEWAY_OPENAI_RELOGIN_TIMEOUT_SECONDS=45
+```
+
+Notes:
+- `GATEWAY_OPENAI_RELOGIN_BASE_URL` must be reachable from the server running `sub2api`.
+- Do not use `localhost`, `127.0.0.1`, or a local filesystem path unless the orchestrator is on the same host.
+- After deployment, you can also update the endpoint online in `Admin -> Relogin Queue -> Relogin Service Endpoint`. Those runtime settings are stored in the database and take effect without restarting `sub2api`.
+- `deploy/docker-compose.dev.yml` behaves differently for local development: when this value is empty it falls back to the built-in `openai-relogin` container.
+
 ### How Auto-Setup Works
 
 When using Docker Compose with `AUTO_SETUP=true`:
