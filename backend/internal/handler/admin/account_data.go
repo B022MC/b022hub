@@ -1,7 +1,9 @@
 package admin
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -19,6 +21,7 @@ import (
 const (
 	dataType       = "sub2api-data"
 	legacyDataType = "sub2api-bundle"
+	codexDataType  = "codex"
 	dataVersion    = 1
 	dataPageCap    = 1000
 )
@@ -63,6 +66,12 @@ type DataImportRequest struct {
 	SkipDefaultGroupBind *bool       `json:"skip_default_group_bind"`
 }
 
+type DataImportRequestRaw struct {
+	Data                 json.RawMessage `json:"data"`
+	GroupIDs             []int64         `json:"group_ids"`
+	SkipDefaultGroupBind *bool           `json:"skip_default_group_bind"`
+}
+
 type DataImportResult struct {
 	ProxyCreated   int               `json:"proxy_created"`
 	ProxyReused    int               `json:"proxy_reused"`
@@ -77,6 +86,17 @@ type DataImportError struct {
 	Name     string `json:"name,omitempty"`
 	ProxyKey string `json:"proxy_key,omitempty"`
 	Message  string `json:"message"`
+}
+
+type CodexTokenPayload struct {
+	Type         string `json:"type"`
+	IDToken      string `json:"id_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	AccountID    string `json:"account_id"`
+	LastRefresh  string `json:"last_refresh"`
+	Email        string `json:"email"`
+	Expired      string `json:"expired"`
 }
 
 func buildProxyKey(protocol, host string, port int, username, password string) string {
@@ -173,10 +193,22 @@ func (h *AccountHandler) ExportData(c *gin.Context) {
 }
 
 func (h *AccountHandler) ImportData(c *gin.Context) {
-	var req DataImportRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var rawReq DataImportRequestRaw
+	if err := c.ShouldBindJSON(&rawReq); err != nil {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
+	}
+
+	dataPayload, err := decodeImportDataPayload(rawReq.Data)
+	if err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	req := DataImportRequest{
+		Data:                 dataPayload,
+		GroupIDs:             rawReq.GroupIDs,
+		SkipDefaultGroupBind: rawReq.SkipDefaultGroupBind,
 	}
 
 	if err := validateDataHeader(req.Data); err != nil {
@@ -187,6 +219,99 @@ func (h *AccountHandler) ImportData(c *gin.Context) {
 	executeAdminIdempotentJSON(c, "admin.accounts.import_data", req, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
 		return h.importData(ctx, req)
 	})
+}
+
+func decodeImportDataPayload(raw json.RawMessage) (DataPayload, error) {
+	if len(bytes.TrimSpace(raw)) == 0 {
+		return DataPayload{}, errors.New("data is required")
+	}
+
+	var header struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal(raw, &header); err != nil {
+		return DataPayload{}, fmt.Errorf("invalid data payload: %w", err)
+	}
+
+	switch strings.ToLower(strings.TrimSpace(header.Type)) {
+	case "", dataType, legacyDataType:
+		var payload DataPayload
+		if err := json.Unmarshal(raw, &payload); err != nil {
+			return DataPayload{}, fmt.Errorf("invalid data payload: %w", err)
+		}
+		return payload, nil
+	case codexDataType:
+		var payload CodexTokenPayload
+		if err := json.Unmarshal(raw, &payload); err != nil {
+			return DataPayload{}, fmt.Errorf("invalid codex payload: %w", err)
+		}
+		return convertCodexTokenPayload(payload), nil
+	default:
+		return DataPayload{Type: header.Type}, nil
+	}
+}
+
+func convertCodexTokenPayload(payload CodexTokenPayload) DataPayload {
+	credentials := make(map[string]any)
+	if token := strings.TrimSpace(payload.AccessToken); token != "" {
+		credentials["access_token"] = token
+	}
+	if token := strings.TrimSpace(payload.RefreshToken); token != "" {
+		credentials["refresh_token"] = token
+	}
+	if token := strings.TrimSpace(payload.IDToken); token != "" {
+		credentials["id_token"] = token
+	}
+	if accountID := strings.TrimSpace(payload.AccountID); accountID != "" {
+		credentials["chatgpt_account_id"] = accountID
+	}
+	if email := strings.TrimSpace(payload.Email); email != "" {
+		credentials["email"] = email
+	}
+	if expiresAt := strings.TrimSpace(payload.Expired); expiresAt != "" {
+		credentials["expires_at"] = expiresAt
+	}
+	credentials["client_id"] = openai.ClientID
+
+	var extra map[string]any
+	if email := strings.TrimSpace(payload.Email); email != "" {
+		extra = map[string]any{
+			"email": email,
+		}
+	}
+
+	exportedAt := time.Now().UTC().Format(time.RFC3339)
+	if lastRefresh := strings.TrimSpace(payload.LastRefresh); lastRefresh != "" {
+		exportedAt = lastRefresh
+	}
+
+	return DataPayload{
+		Type:       dataType,
+		Version:    dataVersion,
+		ExportedAt: exportedAt,
+		Proxies:    []DataProxy{},
+		Accounts: []DataAccount{
+			{
+				Name:        defaultCodexAccountName(payload),
+				Platform:    service.PlatformOpenAI,
+				Type:        service.AccountTypeOAuth,
+				Credentials: credentials,
+				Extra:       extra,
+				Concurrency: 10,
+				Priority:    1,
+			},
+		},
+	}
+}
+
+func defaultCodexAccountName(payload CodexTokenPayload) string {
+	if email := strings.TrimSpace(payload.Email); email != "" {
+		return email
+	}
+	if accountID := strings.TrimSpace(payload.AccountID); accountID != "" {
+		return "codex-" + accountID
+	}
+	return "codex-imported-account"
 }
 
 func (h *AccountHandler) importData(ctx context.Context, req DataImportRequest) (DataImportResult, error) {

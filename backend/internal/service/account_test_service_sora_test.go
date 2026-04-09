@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,28 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+type accountUnauthorizedRepoStub struct {
+	mockAccountRepoForGemini
+	bindCalls     int
+	boundAccount  int64
+	boundGroupIDs []int64
+	setErrorCalls int
+	lastErrorMsg  string
+}
+
+func (r *accountUnauthorizedRepoStub) BindGroups(_ context.Context, accountID int64, groupIDs []int64) error {
+	r.bindCalls++
+	r.boundAccount = accountID
+	r.boundGroupIDs = append([]int64(nil), groupIDs...)
+	return nil
+}
+
+func (r *accountUnauthorizedRepoStub) SetError(_ context.Context, _ int64, errorMsg string) error {
+	r.setErrorCalls++
+	r.lastErrorMsg = errorMsg
+	return nil
+}
 
 type queuedHTTPUpstream struct {
 	responses []*http.Response
@@ -211,7 +234,8 @@ func TestAccountTestService_testSoraAccountConnection_TokenInvalidated(t *testin
 			newJSONResponse(http.StatusUnauthorized, `{"error":{"code":"token_invalidated","message":"Token invalid"}}`),
 		},
 	}
-	svc := &AccountTestService{httpUpstream: upstream}
+	repo := &accountUnauthorizedRepoStub{}
+	svc := &AccountTestService{accountRepo: repo, httpUpstream: upstream}
 	account := &Account{
 		ID:          1,
 		Platform:    PlatformSora,
@@ -231,7 +255,13 @@ func TestAccountTestService_testSoraAccountConnection_TokenInvalidated(t *testin
 	require.Contains(t, body, `"type":"sora_test_result"`)
 	require.Contains(t, body, `"status":"failed"`)
 	require.Contains(t, body, "token_invalidated")
+	require.Contains(t, body, "账号已移至未分组")
 	require.NotContains(t, body, `"type":"test_complete","success":true`)
+	require.Equal(t, 1, repo.bindCalls)
+	require.Equal(t, int64(1), repo.boundAccount)
+	require.Empty(t, repo.boundGroupIDs)
+	require.Equal(t, 1, repo.setErrorCalls)
+	require.Contains(t, repo.lastErrorMsg, "Sora token invalidated (401)")
 }
 
 func TestAccountTestService_testSoraAccountConnection_RateLimited(t *testing.T) {

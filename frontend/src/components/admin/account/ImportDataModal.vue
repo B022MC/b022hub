@@ -28,11 +28,13 @@
         <div
           class="flex items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 dark:border-dark-600 dark:bg-dark-800"
         >
-          <div class="min-w-0">
+          <div class="min-w-0" :title="selectedFileNames || undefined">
             <div class="truncate text-sm text-gray-700 dark:text-dark-200">
-              {{ fileName || t('admin.accounts.dataImportSelectFile') }}
+              {{ fileSummary || t('admin.accounts.dataImportSelectFile') }}
             </div>
-            <div class="text-xs text-gray-500 dark:text-dark-400">JSON (.json)</div>
+            <div class="truncate text-xs text-gray-500 dark:text-dark-400">
+              {{ fileDetail }}
+            </div>
           </div>
           <button type="button" class="btn btn-secondary shrink-0" @click="openFilePicker">
             {{ t('common.chooseFile') }}
@@ -43,6 +45,7 @@
           type="file"
           class="hidden"
           accept="application/json,.json"
+          multiple
           @change="handleFileChange"
         />
       </div>
@@ -110,6 +113,25 @@ interface Emits {
   (e: 'imported'): void
 }
 
+interface BatchImportError {
+  kind: 'proxy' | 'account' | 'file'
+  name?: string
+  proxy_key?: string
+  message: string
+}
+
+interface BatchImportResult {
+  proxy_created: number
+  proxy_reused: number
+  proxy_failed: number
+  account_created: number
+  account_failed: number
+  errors: BatchImportError[]
+  file_total: number
+  file_successful: number
+  file_failed: number
+}
+
 const props = withDefaults(defineProps<Props>(), {
   groups: () => []
 })
@@ -119,13 +141,25 @@ const { t } = useI18n()
 const appStore = useAppStore()
 
 const importing = ref(false)
-const file = ref<File | null>(null)
-const result = ref<AdminDataImportResult | null>(null)
+const files = ref<File[]>([])
+const result = ref<BatchImportResult | null>(null)
 const selectedGroupIds = ref<number[]>([])
 
 const fileInput = ref<HTMLInputElement | null>(null)
-const fileName = computed(() => file.value?.name || '')
 const groups = computed(() => props.groups)
+const selectedFileNames = computed(() => files.value.map((item) => item.name).join(', '))
+const fileSummary = computed(() => {
+  if (files.value.length === 1) {
+    return files.value[0].name
+  }
+  if (files.value.length > 1) {
+    return t('admin.accounts.dataImportSelectedFiles', { count: files.value.length })
+  }
+  return ''
+})
+const fileDetail = computed(() =>
+  files.value.length > 1 ? selectedFileNames.value : t('admin.accounts.dataImportFileHint')
+)
 
 const errorItems = computed(() => result.value?.errors || [])
 
@@ -133,7 +167,7 @@ watch(
   () => props.show,
   (open) => {
     if (open) {
-      file.value = null
+      files.value = []
       result.value = null
       selectedGroupIds.value = []
       if (fileInput.value) {
@@ -149,7 +183,7 @@ const openFilePicker = () => {
 
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement
-  file.value = target.files?.[0] || null
+  files.value = Array.from(target.files || [])
 }
 
 const handleClose = () => {
@@ -175,45 +209,102 @@ const readFileAsText = async (sourceFile: File): Promise<string> => {
   })
 }
 
+const createEmptyResult = (): BatchImportResult => ({
+  proxy_created: 0,
+  proxy_reused: 0,
+  proxy_failed: 0,
+  account_created: 0,
+  account_failed: 0,
+  errors: [],
+  file_total: 0,
+  file_successful: 0,
+  file_failed: 0
+})
+
+const mergeImportResult = (aggregate: BatchImportResult, current: AdminDataImportResult) => {
+  aggregate.proxy_created += current.proxy_created
+  aggregate.proxy_reused += current.proxy_reused
+  aggregate.proxy_failed += current.proxy_failed
+  aggregate.account_created += current.account_created
+  aggregate.account_failed += current.account_failed
+  if (current.errors?.length) {
+    aggregate.errors.push(...current.errors)
+  }
+}
+
+const buildMessageParams = (payload: BatchImportResult): Record<string, number> => ({
+  account_created: payload.account_created,
+  account_failed: payload.account_failed,
+  proxy_created: payload.proxy_created,
+  proxy_reused: payload.proxy_reused,
+  proxy_failed: payload.proxy_failed,
+  file_total: payload.file_total,
+  file_successful: payload.file_successful,
+  file_failed: payload.file_failed
+})
+
 const handleImport = async () => {
-  if (!file.value) {
+  if (files.value.length === 0) {
     appStore.showError(t('admin.accounts.dataImportSelectFile'))
     return
   }
 
   importing.value = true
   try {
-    const text = await readFileAsText(file.value)
-    const dataPayload = JSON.parse(text)
+    const aggregate = createEmptyResult()
     const groupIds = selectedGroupIds.value.length > 0 ? [...selectedGroupIds.value] : undefined
 
-    const res = await adminAPI.accounts.importData({
-      data: dataPayload,
-      group_ids: groupIds,
-      skip_default_group_bind: true
-    })
+    for (const sourceFile of files.value) {
+      aggregate.file_total += 1
 
-    result.value = res
+      try {
+        const text = await readFileAsText(sourceFile)
+        const dataPayload = JSON.parse(text)
+        const res = await adminAPI.accounts.importData({
+          data: dataPayload,
+          group_ids: groupIds,
+          skip_default_group_bind: true
+        })
 
-    const msgParams: Record<string, unknown> = {
-      account_created: res.account_created,
-      account_failed: res.account_failed,
-      proxy_created: res.proxy_created,
-      proxy_reused: res.proxy_reused,
-      proxy_failed: res.proxy_failed,
+        mergeImportResult(aggregate, res)
+        aggregate.file_successful += 1
+      } catch (error: any) {
+        aggregate.file_failed += 1
+        aggregate.errors.push({
+          kind: 'file',
+          name: sourceFile.name,
+          message:
+            error instanceof SyntaxError
+              ? t('admin.accounts.dataImportParseFailed')
+              : (error?.message ?? t('admin.accounts.dataImportFailed'))
+        })
+      }
     }
-    if (res.account_failed > 0 || res.proxy_failed > 0) {
+
+    result.value = aggregate
+
+    const msgParams = buildMessageParams(aggregate)
+    const singleFileFailure =
+      files.value.length === 1 && aggregate.file_successful === 0 && aggregate.errors.length === 1
+    const hasErrors =
+      aggregate.file_failed > 0 ||
+      aggregate.account_failed > 0 ||
+      aggregate.proxy_failed > 0 ||
+      aggregate.errors.length > 0
+
+    if (aggregate.file_successful > 0) {
+      emit('imported')
+    }
+
+    if (singleFileFailure) {
+      appStore.showError(aggregate.errors[0].message)
+    } else if (hasErrors) {
       appStore.showError(t('admin.accounts.dataImportCompletedWithErrors', msgParams))
     } else {
       appStore.showSuccess(t('admin.accounts.dataImportSuccess', msgParams))
-      emit('imported')
     }
   } catch (error: any) {
-    if (error instanceof SyntaxError) {
-      appStore.showError(t('admin.accounts.dataImportParseFailed'))
-    } else {
-      appStore.showError(error?.message || t('admin.accounts.dataImportFailed'))
-    }
+    appStore.showError(error?.message || t('admin.accounts.dataImportFailed'))
   } finally {
     importing.value = false
   }

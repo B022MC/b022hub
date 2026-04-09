@@ -546,10 +546,11 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 				_ = s.accountRepo.SetRateLimited(ctx, account.ID, *resetAt)
 				account.RateLimitResetAt = resetAt
 			}
-			if shouldMoveOpenAIOAuthTokenRevokedToUngrouped(account, resp.StatusCode, body) {
-				upstreamMsg := sanitizeUpstreamErrorMessage(strings.TrimSpace(extractUpstreamErrorMessage(body)))
-				if err := moveOpenAIOAuthTokenRevokedAccountToUngrouped(ctx, s.accountRepo, account, upstreamMsg); err != nil {
-					log.Printf("[AccountTest] failed to move revoked OpenAI OAuth account to ungrouped: account=%d err=%v", account.ID, err)
+		}
+		if s.accountRepo != nil {
+			if statusMsg, shouldUngroup := unauthorizedAccountUngroupStatus(account, resp.StatusCode, body); shouldUngroup {
+				if err := moveUnauthorizedAccountToUngrouped(ctx, s.accountRepo, account, statusMsg); err != nil {
+					log.Printf("[AccountTest] failed to move unauthorized account to ungrouped: account=%d platform=%s err=%v", account.ID, account.Platform, err)
 				} else {
 					errMsg := fmt.Sprintf("API returned %d: %s (account moved to ungrouped)", resp.StatusCode, string(body))
 					return s.sendErrorAndEnd(c, errMsg)
@@ -915,6 +916,15 @@ func (s *AccountTestService) testSoraAccountConnection(c *gin.Context, account *
 		case resp.StatusCode == http.StatusUnauthorized && strings.EqualFold(upstreamCode, "token_invalidated"):
 			recorder.addStep("me", "failed", resp.StatusCode, "token_invalidated", "Sora token invalidated")
 			s.emitSoraProbeSummary(c, recorder)
+			if s.accountRepo != nil {
+				if statusMsg, shouldUngroup := unauthorizedAccountUngroupStatus(account, resp.StatusCode, body); shouldUngroup {
+					if err := moveUnauthorizedAccountToUngrouped(ctx, s.accountRepo, account, statusMsg); err != nil {
+						log.Printf("[AccountTest] failed to move unauthorized Sora account to ungrouped: account=%d err=%v", account.ID, err)
+					} else {
+						return s.sendErrorAndEnd(c, "Sora token 已失效（token_invalidated），账号已移至未分组，请重新授权账号")
+					}
+				}
+			}
 			return s.sendErrorAndEnd(c, "Sora token 已失效（token_invalidated），请重新授权账号")
 		case strings.EqualFold(upstreamCode, "unsupported_country_code"):
 			recorder.addStep("me", "failed", resp.StatusCode, "unsupported_country_code", "Sora is unavailable in current egress region")

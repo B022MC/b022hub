@@ -122,7 +122,7 @@ func TestAccountTestService_OpenAI429PersistsSnapshotAndRateLimit(t *testing.T) 
 	}
 }
 
-func TestAccountTestService_OpenAI401AccountDeactivatedDoesNotDeleteAccount(t *testing.T) {
+func TestAccountTestService_OpenAI401AccountDeactivatedMovesAccountToUngrouped(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, recorder := newSoraTestContext()
 
@@ -141,9 +141,12 @@ func TestAccountTestService_OpenAI401AccountDeactivatedDoesNotDeleteAccount(t *t
 
 	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-5.4")
 	require.Error(t, err)
-	require.Equal(t, 0, repo.bindCalls)
-	require.Equal(t, 0, repo.setErrorCalls)
-	require.NotContains(t, recorder.Body.String(), "account moved to ungrouped")
+	require.Equal(t, 1, repo.bindCalls)
+	require.Equal(t, int64(87), repo.boundAccount)
+	require.Empty(t, repo.boundGroupIDs)
+	require.Equal(t, 1, repo.setErrorCalls)
+	require.Contains(t, repo.lastErrorMsg, "OpenAI account deactivated (401)")
+	require.Contains(t, recorder.Body.String(), "account moved to ungrouped")
 }
 
 func TestAccountTestService_OpenAI401TokenRevokedMovesAccountToUngrouped(t *testing.T) {

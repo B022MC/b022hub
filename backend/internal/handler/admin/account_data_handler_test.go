@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/B022MC/b022hub/internal/pkg/openai"
 	"github.com/B022MC/b022hub/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -231,4 +232,49 @@ func TestImportDataReusesProxyAndSkipsDefaultGroup(t *testing.T) {
 	require.Len(t, adminSvc.createdAccounts, 1)
 	require.Equal(t, []int64{2}, adminSvc.createdAccounts[0].GroupIDs)
 	require.True(t, adminSvc.createdAccounts[0].SkipDefaultGroupBind)
+}
+
+func TestImportDataSupportsCodexTokenFile(t *testing.T) {
+	router, adminSvc := setupAccountDataRouter()
+
+	dataPayload := map[string]any{
+		"data": map[string]any{
+			"type":          "codex",
+			"id_token":      "id-token",
+			"access_token":  "access-token",
+			"refresh_token": "refresh-token",
+			"account_id":    "chatgpt-account-id",
+			"last_refresh":  "2026-04-08T07:01:39Z",
+			"email":         "alanekinahan775@hotmail.com",
+			"expired":       "2026-04-18T07:01:38Z",
+		},
+		"group_ids":               []int64{2},
+		"skip_default_group_bind": true,
+	}
+
+	body, _ := json.Marshal(dataPayload)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/accounts/data", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	require.Len(t, adminSvc.createdProxies, 0)
+	require.Len(t, adminSvc.createdAccounts, 1)
+
+	created := adminSvc.createdAccounts[0]
+	require.Equal(t, "alanekinahan775@hotmail.com", created.Name)
+	require.Equal(t, service.PlatformOpenAI, created.Platform)
+	require.Equal(t, service.AccountTypeOAuth, created.Type)
+	require.Equal(t, []int64{2}, created.GroupIDs)
+	require.True(t, created.SkipDefaultGroupBind)
+	require.Equal(t, 10, created.Concurrency)
+	require.Equal(t, 1, created.Priority)
+	require.Equal(t, "access-token", created.Credentials["access_token"])
+	require.Equal(t, "refresh-token", created.Credentials["refresh_token"])
+	require.Equal(t, "id-token", created.Credentials["id_token"])
+	require.Equal(t, "chatgpt-account-id", created.Credentials["chatgpt_account_id"])
+	require.Equal(t, "2026-04-18T07:01:38Z", created.Credentials["expires_at"])
+	require.Equal(t, openai.ClientID, created.Credentials["client_id"])
+	require.Equal(t, "alanekinahan775@hotmail.com", created.Extra["email"])
 }

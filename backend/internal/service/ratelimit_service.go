@@ -116,15 +116,6 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 		upstreamMsg = truncateForLog([]byte(upstreamMsg), 512)
 	}
 
-	if shouldMoveOpenAIOAuthTokenRevokedToUngrouped(account, statusCode, responseBody) {
-		if err := moveOpenAIOAuthTokenRevokedAccountToUngrouped(ctx, s.accountRepo, account, upstreamMsg); err != nil {
-			slog.Warn("openai_oauth_token_revoked_ungroup_failed", "account_id", account.ID, "error", err)
-		} else {
-			slog.Info("openai_oauth_token_revoked_account_ungrouped", "account_id", account.ID)
-		}
-		return true
-	}
-
 	customErrorCodesEnabled := account.IsCustomErrorCodesEnabled()
 
 	// 池模式默认不标记本地账号状态；仅当用户显式配置自定义错误码时按本地策略处理。
@@ -138,6 +129,23 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 	if !account.ShouldHandleErrorCode(statusCode) {
 		slog.Info("account_error_code_skipped", "account_id", account.ID, "status_code", statusCode)
 		return false
+	}
+
+	if statusMsg, shouldUngroup := unauthorizedAccountUngroupStatus(account, statusCode, responseBody); shouldUngroup {
+		if err := moveUnauthorizedAccountToUngrouped(ctx, s.accountRepo, account, statusMsg); err != nil {
+			slog.Warn("account_unauthorized_ungroup_failed",
+				"account_id", account.ID,
+				"platform", account.Platform,
+				"error", err,
+			)
+		} else {
+			slog.Info("account_unauthorized_ungrouped",
+				"account_id", account.ID,
+				"platform", account.Platform,
+				"reason", statusMsg,
+			)
+		}
+		return true
 	}
 
 	// 先尝试临时不可调度规则（401除外）
@@ -246,33 +254,39 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 	return shouldDisable
 }
 
-func shouldMoveOpenAIOAuthTokenRevokedToUngrouped(account *Account, statusCode int, responseBody []byte) bool {
+func unauthorizedAccountUngroupStatus(account *Account, statusCode int, responseBody []byte) (string, bool) {
 	if account == nil || statusCode != http.StatusUnauthorized {
-		return false
-	}
-	if account.Platform != PlatformOpenAI || account.Type != AccountTypeOAuth {
-		return false
+		return "", false
 	}
 
-	code, message := extractOpenAIErrorCodeAndMessage(responseBody)
-	if code == "token_revoked" || code == "token_invalidated" {
-		return true
-	}
-	if strings.Contains(message, "invalidated oauth token") {
-		return true
-	}
-	if strings.Contains(message, "authentication token has been invalidated") {
-		return true
+	code, message := extractUnauthorizedErrorCodeAndMessage(responseBody)
+	messageLower := strings.ToLower(message)
+
+	switch account.Platform {
+	case PlatformOpenAI:
+		switch code {
+		case "token_revoked", "token_invalidated":
+			return formatUnauthorizedUngroupStatus("OpenAI OAuth token revoked (401)", message), true
+		case "account_deactivated":
+			return formatUnauthorizedUngroupStatus("OpenAI account deactivated (401)", message), true
+		}
+		if strings.Contains(messageLower, "invalidated oauth token") ||
+			strings.Contains(messageLower, "authentication token has been invalidated") {
+			return formatUnauthorizedUngroupStatus("OpenAI OAuth token revoked (401)", message), true
+		}
+		if strings.Contains(messageLower, "account has been deactivated") {
+			return formatUnauthorizedUngroupStatus("OpenAI account deactivated (401)", message), true
+		}
+	case PlatformSora:
+		if code == "token_invalidated" || strings.Contains(messageLower, "token invalidated") {
+			return formatUnauthorizedUngroupStatus("Sora token invalidated (401)", message), true
+		}
 	}
 
-	raw := strings.ToLower(strings.TrimSpace(string(responseBody)))
-	return strings.Contains(raw, `"code":"token_revoked"`) ||
-		strings.Contains(raw, `"code":"token_invalidated"`) ||
-		strings.Contains(raw, "invalidated oauth token") ||
-		strings.Contains(raw, "authentication token has been invalidated")
+	return "", false
 }
 
-func extractOpenAIErrorCodeAndMessage(body []byte) (string, string) {
+func extractUnauthorizedErrorCodeAndMessage(body []byte) (string, string) {
 	var payload struct {
 		Error struct {
 			Code    string `json:"code"`
@@ -282,40 +296,40 @@ func extractOpenAIErrorCodeAndMessage(body []byte) (string, string) {
 	if err := json.Unmarshal(body, &payload); err != nil {
 		return "", ""
 	}
-	return strings.ToLower(strings.TrimSpace(payload.Error.Code)), strings.ToLower(strings.TrimSpace(payload.Error.Message))
+	return strings.ToLower(strings.TrimSpace(payload.Error.Code)), strings.TrimSpace(payload.Error.Message)
 }
 
-func formatOpenAIOAuthTokenRevokedStatus(upstreamMsg string) string {
-	msg := "OpenAI OAuth token revoked (401)"
-	if upstreamMsg == "" {
-		return msg
+func formatUnauthorizedUngroupStatus(baseMsg, upstreamMsg string) string {
+	if strings.TrimSpace(upstreamMsg) == "" {
+		return baseMsg
 	}
-	return msg + ": " + upstreamMsg
+	return baseMsg + ": " + upstreamMsg
 }
 
-func moveOpenAIOAuthTokenRevokedAccountToUngrouped(
+func moveUnauthorizedAccountToUngrouped(
 	ctx context.Context,
 	repo AccountRepository,
 	account *Account,
-	upstreamMsg string,
+	statusMsg string,
 ) error {
 	if repo == nil || account == nil {
 		return nil
 	}
 
-	statusMsg := formatOpenAIOAuthTokenRevokedStatus(upstreamMsg)
 	if err := repo.BindGroups(ctx, account.ID, nil); err != nil {
 		if setErr := repo.SetError(ctx, account.ID, statusMsg); setErr != nil {
-			slog.Warn("openai_oauth_token_revoked_set_error_failed", "account_id", account.ID, "error", setErr)
+			slog.Warn("account_unauthorized_set_error_failed", "account_id", account.ID, "error", setErr)
 		}
 		return err
 	}
 
 	account.GroupIDs = nil
 	account.AccountGroups = nil
+	account.Groups = nil
 	if err := repo.SetError(ctx, account.ID, statusMsg); err != nil {
-		slog.Warn("openai_oauth_token_revoked_set_error_failed", "account_id", account.ID, "error", err)
+		slog.Warn("account_unauthorized_set_error_failed", "account_id", account.ID, "error", err)
 	} else {
+		account.Status = StatusError
 		account.ErrorMessage = statusMsg
 	}
 	return nil

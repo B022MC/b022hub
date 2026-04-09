@@ -142,7 +142,7 @@ func TestRateLimitService_HandleUpstreamError_NonOAuth401(t *testing.T) {
 	require.Empty(t, invalidator.accounts)
 }
 
-func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedOAuthUsesTempUnschedulableWithoutDeleting(t *testing.T) {
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedOAuthMovesAccountToUngrouped(t *testing.T) {
 	repo := &rateLimitAccountRepoStub{}
 	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	account := &Account{
@@ -155,12 +155,15 @@ func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedOAuthUsesT
 	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
 
 	require.True(t, shouldDisable)
-	require.Equal(t, 0, repo.bindCalls)
-	require.Equal(t, 1, repo.tempCalls)
-	require.Equal(t, 0, repo.setErrorCalls)
+	require.Equal(t, 1, repo.bindCalls)
+	require.Equal(t, int64(103), repo.boundAccount)
+	require.Empty(t, repo.boundGroupIDs)
+	require.Equal(t, 0, repo.tempCalls)
+	require.Equal(t, 1, repo.setErrorCalls)
+	require.Contains(t, repo.lastErrorMsg, "OpenAI account deactivated (401)")
 }
 
-func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedAPIKeySetsErrorWithoutDeleting(t *testing.T) {
+func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedAPIKeyMovesAccountToUngrouped(t *testing.T) {
 	repo := &rateLimitAccountRepoStub{}
 	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	account := &Account{
@@ -173,10 +176,12 @@ func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedAPIKeySets
 	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
 
 	require.True(t, shouldDisable)
-	require.Equal(t, 0, repo.bindCalls)
+	require.Equal(t, 1, repo.bindCalls)
+	require.Equal(t, int64(104), repo.boundAccount)
+	require.Empty(t, repo.boundGroupIDs)
 	require.Equal(t, 0, repo.tempCalls)
 	require.Equal(t, 1, repo.setErrorCalls)
-	require.Contains(t, repo.lastErrorMsg, "account has been deactivated")
+	require.Contains(t, repo.lastErrorMsg, "OpenAI account deactivated (401)")
 }
 
 func TestRateLimitService_HandleUpstreamError_OpenAITokenRevokedOAuthMovesAccountToUngrouped(t *testing.T) {
@@ -236,6 +241,27 @@ func TestRateLimitService_HandleUpstreamError_OpenAITokenInvalidatedOAuthMovesAc
 	require.Equal(t, int64(1043), repo.boundAccount)
 	require.Empty(t, repo.boundGroupIDs)
 	require.Equal(t, 1, repo.setErrorCalls)
+}
+
+func TestRateLimitService_HandleUpstreamError_SoraTokenInvalidatedMovesAccountToUngrouped(t *testing.T) {
+	repo := &rateLimitAccountRepoStub{}
+	service := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
+	account := &Account{
+		ID:       1044,
+		Platform: PlatformSora,
+		Type:     AccountTypeOAuth,
+	}
+
+	body := []byte(`{"error":{"message":"Token invalid","code":"token_invalidated"},"status":401}`)
+	shouldDisable := service.HandleUpstreamError(context.Background(), account, 401, http.Header{}, body)
+
+	require.True(t, shouldDisable)
+	require.Equal(t, 1, repo.bindCalls)
+	require.Equal(t, int64(1044), repo.boundAccount)
+	require.Empty(t, repo.boundGroupIDs)
+	require.Equal(t, 0, repo.tempCalls)
+	require.Equal(t, 1, repo.setErrorCalls)
+	require.Contains(t, repo.lastErrorMsg, "Sora token invalidated (401)")
 }
 
 func TestRateLimitService_HandleUpstreamError_OpenAIAccountDeactivatedPoolModeSkipsLocalState(t *testing.T) {

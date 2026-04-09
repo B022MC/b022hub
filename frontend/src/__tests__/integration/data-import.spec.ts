@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import ImportDataModal from '@/components/admin/account/ImportDataModal.vue'
 
 const { showError, showSuccess, importData } = vi.hoisted(() => ({
@@ -131,5 +131,93 @@ describe('ImportDataModal', () => {
       group_ids: [2],
       skip_default_group_bind: true
     })
+  })
+
+  it('支持一次选择多个文件并逐个导入', async () => {
+    importData
+      .mockResolvedValueOnce({
+        proxy_created: 1,
+        proxy_reused: 0,
+        proxy_failed: 0,
+        account_created: 1,
+        account_failed: 0,
+        errors: []
+      })
+      .mockResolvedValueOnce({
+        proxy_created: 0,
+        proxy_reused: 1,
+        proxy_failed: 0,
+        account_created: 2,
+        account_failed: 0,
+        errors: []
+      })
+
+    const wrapper = mount(ImportDataModal, {
+      props: { show: true, groups: [] },
+      global: {
+        stubs: {
+          BaseDialog: { template: '<div><slot /><slot name="footer" /></div>' }
+        }
+      }
+    })
+
+    const input = wrapper.find('input[type="file"]')
+    const firstFile = new File(
+      ['{"type":"sub2api-data","version":1,"proxies":[{"name":"p1"}],"accounts":[{"name":"a1"}]}'],
+      'first.json',
+      {
+        type: 'application/json'
+      }
+    )
+    const secondFile = new File(
+      ['{"type":"sub2api-data","version":1,"proxies":[{"name":"p2"}],"accounts":[{"name":"a2"},{"name":"a3"}]}'],
+      'second.json',
+      {
+        type: 'application/json'
+      }
+    )
+
+    Object.defineProperty(firstFile, 'text', {
+      value: () =>
+        Promise.resolve('{"type":"sub2api-data","version":1,"proxies":[{"name":"p1"}],"accounts":[{"name":"a1"}]}')
+    })
+    Object.defineProperty(secondFile, 'text', {
+      value: () =>
+        Promise.resolve(
+          '{"type":"sub2api-data","version":1,"proxies":[{"name":"p2"}],"accounts":[{"name":"a2"},{"name":"a3"}]}'
+        )
+    })
+    Object.defineProperty(input.element, 'files', {
+      value: [firstFile, secondFile]
+    })
+
+    await input.trigger('change')
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(input.attributes('multiple')).toBeDefined()
+    expect(importData).toHaveBeenCalledTimes(2)
+    expect(importData).toHaveBeenNthCalledWith(1, {
+      data: {
+        type: 'sub2api-data',
+        version: 1,
+        proxies: [{ name: 'p1' }],
+        accounts: [{ name: 'a1' }]
+      },
+      group_ids: undefined,
+      skip_default_group_bind: true
+    })
+    expect(importData).toHaveBeenNthCalledWith(2, {
+      data: {
+        type: 'sub2api-data',
+        version: 1,
+        proxies: [{ name: 'p2' }],
+        accounts: [{ name: 'a2' }, { name: 'a3' }]
+      },
+      group_ids: undefined,
+      skip_default_group_bind: true
+    })
+    expect(showSuccess).toHaveBeenCalledWith('admin.accounts.dataImportSuccess')
+    expect(wrapper.emitted('imported')).toBeTruthy()
   })
 })
