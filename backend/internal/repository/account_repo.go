@@ -1186,7 +1186,16 @@ func (r *accountRepository) AutoDeleteRateLimitedAccounts(ctx context.Context, n
 	}
 
 	ids, err := txClient.Account.Query().
-		Where(dbaccount.RateLimitResetAtGT(now)).
+		Where(
+			dbaccount.RateLimitResetAtGT(now),
+			func(s *entsql.Selector) {
+				path := sqljson.Path("auto_delete_on_rate_limit")
+				s.Where(entsql.Or(
+					sqljson.ValueEQ(dbaccount.FieldExtra, true, path),
+					sqljson.ValueEQ(dbaccount.FieldExtra, "true", path),
+				))
+			},
+		).
 		IDs(ctx)
 	if err != nil {
 		return 0, err

@@ -611,6 +611,14 @@ func (s *AccountRepoSuite) TestAutoDeleteRateLimitedAccounts() {
 		Name:             "acc-rate-limited-delete",
 		Platform:         service.PlatformOpenAI,
 		Type:             service.AccountTypeOAuth,
+		Extra:            map[string]any{"auto_delete_on_rate_limit": true},
+		RateLimitedAt:    &limitedAt,
+		RateLimitResetAt: &limitedResetAt,
+	})
+	limitedNoFlag := mustCreateAccount(s.T(), s.client, &service.Account{
+		Name:             "acc-rate-limited-keep",
+		Platform:         service.PlatformOpenAI,
+		Type:             service.AccountTypeOAuth,
 		RateLimitedAt:    &limitedAt,
 		RateLimitResetAt: &limitedResetAt,
 	})
@@ -633,6 +641,9 @@ func (s *AccountRepoSuite) TestAutoDeleteRateLimitedAccounts() {
 
 	_, err = s.repo.GetByID(s.ctx, limited.ID)
 	s.Require().ErrorIs(err, service.ErrAccountNotFound)
+	stillLimited, err := s.repo.GetByID(s.ctx, limitedNoFlag.ID)
+	s.Require().NoError(err)
+	s.Require().Equal(limitedNoFlag.ID, stillLimited.ID)
 	stillThere, err := s.repo.GetByID(s.ctx, expired.ID)
 	s.Require().NoError(err)
 	s.Require().Equal(expired.ID, stillThere.ID)

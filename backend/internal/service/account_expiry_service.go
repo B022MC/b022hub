@@ -16,7 +16,7 @@ type accountExpiryRepository interface {
 }
 
 // AccountExpiryService periodically pauses expired accounts and can optionally
-// delete account-level rate-limited accounts.
+// delete rate-limited accounts that were explicitly marked for auto-delete.
 type AccountExpiryService struct {
 	accountRepo           accountExpiryRepository
 	rateLimitedDeleteRepo rateLimitedAccountAutoDeleteRepository
