@@ -69,6 +69,11 @@ func RegisterUserRoutes(
 			usage.POST("/dashboard/api-keys-usage", h.Usage.DashboardAPIKeysUsage)
 		}
 
+		ops := authenticated.Group("/ops")
+		{
+			ops.GET("/status-matrix", h.Usage.GetStatusMatrix)
+		}
+
 		// 公告（用户可见）
 		announcements := authenticated.Group("/announcements")
 		{

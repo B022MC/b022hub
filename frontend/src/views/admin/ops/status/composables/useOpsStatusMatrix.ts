@@ -1,6 +1,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { userGroupsAPI, userOpsAPI } from '@/api'
 import { adminAPI } from '@/api/admin'
 import type {
   OpsStatusMatrixResponse,
@@ -8,8 +9,8 @@ import type {
   OpsStatusMatrixSort,
   OpsStatusMatrixTimeRange,
 } from '@/api/admin/ops'
-import { useAppStore } from '@/stores'
-import type { AdminGroup, GroupPlatform } from '@/types'
+import { useAppStore, useAuthStore } from '@/stores'
+import type { Group, GroupPlatform } from '@/types'
 
 const SEARCH_DEBOUNCE_MS = 250
 
@@ -25,6 +26,7 @@ const PLATFORM_OPTIONS: Array<{ value: GroupPlatform | ''; label: string }> = [
 export function useOpsStatusMatrix() {
   const { t } = useI18n()
   const appStore = useAppStore()
+  const authStore = useAuthStore()
 
   const timeRange = ref<OpsStatusMatrixTimeRange>('90m')
   const platform = ref<GroupPlatform | ''>('')
@@ -32,7 +34,7 @@ export function useOpsStatusMatrix() {
   const query = ref('')
   const sort = ref<OpsStatusMatrixSort>('availability_asc')
 
-  const groups = ref<AdminGroup[]>([])
+  const groups = ref<Array<Pick<Group, 'id' | 'name' | 'platform'>>>([])
   const response = ref<OpsStatusMatrixResponse | null>(null)
   const loading = ref(false)
   const groupsLoading = ref(false)
@@ -86,7 +88,9 @@ export function useOpsStatusMatrix() {
   const loadGroups = async () => {
     groupsLoading.value = true
     try {
-      groups.value = await adminAPI.groups.getAll()
+      groups.value = authStore.isAdmin
+        ? await adminAPI.groups.getAll()
+        : await userGroupsAPI.getAvailable()
     } catch (error) {
       console.error('[OpsStatusMatrix] Failed to load groups', error)
       groups.value = []
@@ -105,7 +109,9 @@ export function useOpsStatusMatrix() {
     errorMessage.value = ''
 
     try {
-      const data = await adminAPI.ops.getStatusMatrix(buildParams(), { signal: controller.signal })
+      const data = authStore.isAdmin
+        ? await adminAPI.ops.getStatusMatrix(buildParams(), { signal: controller.signal })
+        : await userOpsAPI.getStatusMatrix(buildParams(), { signal: controller.signal })
       if (currentSeq !== requestSeq || controller.signal.aborted) {
         return
       }

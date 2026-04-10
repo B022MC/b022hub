@@ -34,6 +34,7 @@ const columns = computed<Column[]>(() => [
   { key: 'platform', label: t('admin.ops.statusMatrix.table.platform'), class: '!whitespace-normal min-w-[120px]' },
   { key: 'group_name', label: t('admin.ops.statusMatrix.table.group'), class: '!whitespace-normal min-w-[160px]' },
   { key: 'model', label: t('admin.ops.statusMatrix.table.model'), class: '!whitespace-normal min-w-[180px]' },
+  { key: 'cache_hit_rate', label: t('admin.ops.statusMatrix.table.cacheHitRate'), class: 'min-w-[120px]' },
   { key: 'last_latency_ms', label: t('admin.ops.statusMatrix.table.lastLatency'), class: 'min-w-[120px]' },
   { key: 'last_checked_at', label: t('admin.ops.statusMatrix.table.lastChecked'), class: 'min-w-[140px]' },
   { key: 'availability', label: t('admin.ops.statusMatrix.table.availability'), class: 'min-w-[120px]' },
@@ -55,6 +56,13 @@ const formatAvailability = (value?: number | null) => {
     return '-'
   }
   return `${(value * 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}%`
+}
+
+const formatCacheHitRate = (value?: number | null) => {
+  if (typeof value !== 'number') {
+    return '-'
+  }
+  return `${(value * 100).toFixed(2)}%`
 }
 
 const getAvailabilityClass = (value?: number | null) => {
@@ -104,6 +112,12 @@ const getExcludedTooltip = (row: OpsStatusMatrixRow) => t('admin.ops.statusMatri
       <code class="rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-700 dark:bg-dark-700 dark:text-gray-100">
         {{ row.model }}
       </code>
+    </template>
+
+    <template #cell-cache_hit_rate="{ value }">
+      <span data-testid="cache-hit-rate-value" class="font-medium text-sky-600 dark:text-sky-400">
+        {{ formatCacheHitRate(value) }}
+      </span>
     </template>
 
     <template #cell-last_latency_ms="{ value }">

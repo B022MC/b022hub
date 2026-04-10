@@ -3753,6 +3753,7 @@ export default {
           platform: '平台',
           group: '分组',
           model: '模型',
+          cacheHitRate: '缓存命中率',
           lastLatency: '最近延迟',
           lastChecked: '最近检查',
           availability: '可用率',

@@ -33,12 +33,14 @@ func TestOpsRepository_GetStatusMatrix(t *testing.T) {
 		"success_count",
 		"error_count",
 		"excluded_error_count",
+		"input_tokens",
+		"cache_read_tokens",
 		"last_success_at",
 		"last_latency_ms",
 		"last_real_error_at",
 	}).
-		AddRow("openai", int64(7), "主通道", "gpt-4.1", int64(2), int64(1), int64(1), end.Add(-10*time.Minute), int64(1234), end.Add(-5*time.Minute)).
-		AddRow("gemini", int64(8), "备用通道", "gemini-2.5-pro", int64(0), int64(1), int64(0), nil, nil, end.Add(-20*time.Minute))
+		AddRow("openai", int64(7), "主通道", "gpt-4.1", int64(2), int64(1), int64(1), int64(80), int64(20), end.Add(-10*time.Minute), int64(1234), end.Add(-5*time.Minute)).
+		AddRow("gemini", int64(8), "备用通道", "gemini-2.5-pro", int64(0), int64(1), int64(0), int64(0), int64(0), nil, nil, end.Add(-20*time.Minute))
 
 	bucketRows := sqlmock.NewRows([]string{
 		"platform",
@@ -84,6 +86,8 @@ func TestOpsRepository_GetStatusMatrix(t *testing.T) {
 	require.Equal(t, "主通道", second.GroupName)
 	require.NotNil(t, second.Availability)
 	require.InDelta(t, 2.0/3.0, *second.Availability, 0.0001)
+	require.NotNil(t, second.CacheHitRate)
+	require.InDelta(t, 0.2, *second.CacheHitRate, 0.0001)
 	require.Equal(t, int64(1), second.ExcludedErrorCount)
 	require.NotNil(t, second.LastCheckedAt)
 	require.NotNil(t, second.LastSuccessAt)
@@ -134,12 +138,14 @@ func TestOpsRepository_GetStatusMatrixFiltersAndExcludedOnlyRows(t *testing.T) {
 		"success_count",
 		"error_count",
 		"excluded_error_count",
+		"input_tokens",
+		"cache_read_tokens",
 		"last_success_at",
 		"last_latency_ms",
 		"last_real_error_at",
 	}).
-		AddRow("openai", groupID, "通道-A", "gpt-4.1", int64(0), int64(0), int64(2), nil, nil, nil).
-		AddRow("openai", groupID, "其他", "gpt-4.1-mini", int64(1), int64(0), int64(0), end.Add(-time.Hour), int64(400), nil)
+		AddRow("openai", groupID, "通道-A", "gpt-4.1", int64(0), int64(0), int64(2), int64(0), int64(0), nil, nil, nil).
+		AddRow("openai", groupID, "其他", "gpt-4.1-mini", int64(1), int64(0), int64(0), int64(10), int64(0), end.Add(-time.Hour), int64(400), nil)
 
 	bucketRows := sqlmock.NewRows([]string{
 		"platform",

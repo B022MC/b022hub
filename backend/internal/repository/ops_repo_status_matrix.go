@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/B022MC/b022hub/internal/pkg/usagestats"
 	"github.com/B022MC/b022hub/internal/service"
+	"github.com/lib/pq"
 )
 
 type opsStatusMatrixRowAgg struct {
@@ -19,6 +21,8 @@ type opsStatusMatrixRowAgg struct {
 	SuccessCount       int64
 	ErrorCount         int64
 	ExcludedErrorCount int64
+	InputTokens        int64
+	CacheReadTokens    int64
 	LastSuccessAt      *time.Time
 	LastLatencyMs      *int64
 	LastRealErrorAt    *time.Time
@@ -89,6 +93,10 @@ func (r *opsRepository) GetStatusMatrix(ctx context.Context, filter *service.Ops
 		if denom := row.SuccessCount + row.ErrorCount; denom > 0 {
 			value := float64(row.SuccessCount) / float64(denom)
 			item.Availability = &value
+		}
+		if row.InputTokens+row.CacheReadTokens > 0 {
+			value := usagestats.ComputeCacheHitRate(row.InputTokens, row.CacheReadTokens)
+			item.CacheHitRate = &value
 		}
 		item.LastCheckedAt = maxTimePtr(row.LastSuccessAt, row.LastRealErrorAt)
 
@@ -169,6 +177,8 @@ WITH usage_base AS (
     ul.group_id AS group_id,
     COALESCE(g.name, '') AS group_name,
     COALESCE(NULLIF(ul.model, ''), NULLIF(ul.upstream_model, ''), 'unknown') AS model,
+    ul.input_tokens AS input_tokens,
+    ul.cache_read_tokens AS cache_read_tokens,
     ul.duration_ms AS duration_ms,
     ul.created_at AS created_at,
     ul.id AS id
@@ -184,6 +194,8 @@ success_agg AS (
     group_name,
     model,
     COUNT(*) AS success_count,
+    COALESCE(SUM(input_tokens), 0) AS input_tokens,
+    COALESCE(SUM(cache_read_tokens), 0) AS cache_read_tokens,
     MAX(created_at) AS last_success_at
   FROM usage_base
   GROUP BY 1, 2, 3, 4
@@ -226,13 +238,15 @@ SELECT
   COALESCE(s.platform, e.platform) AS platform,
   COALESCE(s.group_id, e.group_id) AS group_id,
   COALESCE(NULLIF(s.group_name, ''), NULLIF(e.group_name, ''), '') AS group_name,
-  COALESCE(s.model, e.model) AS model,
-  COALESCE(s.success_count, 0) AS success_count,
-  COALESCE(e.error_count, 0) AS error_count,
-  COALESCE(e.excluded_error_count, 0) AS excluded_error_count,
-  s.last_success_at AS last_success_at,
-  ls.duration_ms AS last_latency_ms,
-  e.last_real_error_at AS last_real_error_at
+    COALESCE(s.model, e.model) AS model,
+    COALESCE(s.success_count, 0) AS success_count,
+    COALESCE(e.error_count, 0) AS error_count,
+    COALESCE(e.excluded_error_count, 0) AS excluded_error_count,
+    COALESCE(s.input_tokens, 0) AS input_tokens,
+    COALESCE(s.cache_read_tokens, 0) AS cache_read_tokens,
+    s.last_success_at AS last_success_at,
+    ls.duration_ms AS last_latency_ms,
+    e.last_real_error_at AS last_real_error_at
 FROM success_agg s
 FULL OUTER JOIN error_agg e
   ON s.platform IS NOT DISTINCT FROM e.platform
@@ -270,6 +284,8 @@ LEFT JOIN latest_success ls
 			&item.SuccessCount,
 			&item.ErrorCount,
 			&item.ExcludedErrorCount,
+			&item.InputTokens,
+			&item.CacheReadTokens,
 			&lastSuccessAt,
 			&lastLatencyMs,
 			&lastRealErrorAt,
@@ -303,9 +319,9 @@ WITH usage_base AS (
     COALESCE(g.name, '') AS group_name,
     COALESCE(NULLIF(ul.model, ''), NULLIF(ul.upstream_model, ''), 'unknown') AS model,
     ` + usageBucketExpr + ` AS bucket_start
-  FROM usage_logs ul
-  LEFT JOIN groups g ON g.id = ul.group_id
-  LEFT JOIN accounts a ON a.id = ul.account_id
+	FROM usage_logs ul
+	LEFT JOIN groups g ON g.id = ul.group_id
+	LEFT JOIN accounts a ON a.id = ul.account_id
   ` + usageWhere + `
 ),
 usage_buckets AS (
@@ -422,6 +438,15 @@ func buildStatusMatrixUsageWhere(filter *service.OpsStatusMatrixFilter, start, e
 		clauses = append(clauses, fmt.Sprintf("ul.group_id = $%d", idx))
 		idx++
 	}
+	if filter != nil && filter.EnforceGroupScope {
+		if len(filter.ScopedGroupIDs) == 0 {
+			clauses = append(clauses, "1 = 0")
+		} else {
+			args = append(args, pq.Array(filter.ScopedGroupIDs))
+			clauses = append(clauses, fmt.Sprintf("ul.group_id = ANY($%d::bigint[])", idx))
+			idx++
+		}
+	}
 	if platform != "" {
 		args = append(args, platform)
 		clauses = append(clauses, fmt.Sprintf("COALESCE(NULLIF(g.platform, ''), a.platform) = $%d", idx))
@@ -457,6 +482,15 @@ func buildStatusMatrixErrorWhere(filter *service.OpsStatusMatrixFilter, start, e
 		args = append(args, *groupID)
 		clauses = append(clauses, fmt.Sprintf("e.group_id = $%d", idx))
 		idx++
+	}
+	if filter != nil && filter.EnforceGroupScope {
+		if len(filter.ScopedGroupIDs) == 0 {
+			clauses = append(clauses, "1 = 0")
+		} else {
+			args = append(args, pq.Array(filter.ScopedGroupIDs))
+			clauses = append(clauses, fmt.Sprintf("e.group_id = ANY($%d::bigint[])", idx))
+			idx++
+		}
 	}
 	if platform != "" {
 		args = append(args, platform)

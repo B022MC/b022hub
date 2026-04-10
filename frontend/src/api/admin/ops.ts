@@ -288,6 +288,7 @@ export interface OpsStatusMatrixRow {
   error_count: number
   excluded_error_count: number
   availability?: number | null
+  cache_hit_rate?: number | null
   last_checked_at?: string | null
   last_success_at?: string | null
   last_latency_ms?: number | null

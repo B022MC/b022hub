@@ -41,6 +41,9 @@ type OpsStatusMatrixFilter struct {
 	GroupID  *int64
 	Query    string
 	Sort     OpsStatusMatrixSort
+
+	ScopedGroupIDs    []int64
+	EnforceGroupScope bool
 }
 
 type OpsStatusMatrixBucket struct {
@@ -63,6 +66,7 @@ type OpsStatusMatrixRow struct {
 	ErrorCount         int64    `json:"error_count"`
 	ExcludedErrorCount int64    `json:"excluded_error_count"`
 	Availability       *float64 `json:"availability"`
+	CacheHitRate       *float64 `json:"cache_hit_rate"`
 
 	LastCheckedAt *time.Time `json:"last_checked_at"`
 	LastSuccessAt *time.Time `json:"last_success_at"`

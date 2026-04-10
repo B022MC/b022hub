@@ -134,6 +134,8 @@ apiClient.interceptors.response.use(
 
         if (window.location.pathname.startsWith('/admin/ops')) {
           window.location.href = '/admin/settings'
+        } else if (window.location.pathname === '/status' || window.location.pathname.startsWith('/status/')) {
+          window.location.href = '/dashboard'
         }
 
         return Promise.reject({

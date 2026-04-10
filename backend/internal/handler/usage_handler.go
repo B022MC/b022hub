@@ -20,6 +20,7 @@ import (
 type UsageHandler struct {
 	usageService  *service.UsageService
 	apiKeyService *service.APIKeyService
+	opsService    *service.OpsService
 }
 
 // NewUsageHandler creates a new UsageHandler
@@ -28,6 +29,13 @@ func NewUsageHandler(usageService *service.UsageService, apiKeyService *service.
 		usageService:  usageService,
 		apiKeyService: apiKeyService,
 	}
+}
+
+func (h *UsageHandler) SetOpsService(opsService *service.OpsService) {
+	if h == nil {
+		return
+	}
+	h.opsService = opsService
 }
 
 // List handles listing usage records with pagination

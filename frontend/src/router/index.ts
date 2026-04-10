@@ -236,6 +236,18 @@ const routes: RouteRecordRaw[] = [
       titleKey: 'customPage.title',
     }
   },
+  {
+    path: '/status',
+    name: 'UserOpsStatusMatrix',
+    component: () => import('@/views/admin/ops/status/OpsStatusMatrixView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Status Monitor',
+      titleKey: 'admin.ops.statusMatrix.title',
+      descriptionKey: 'admin.ops.statusMatrix.description'
+    }
+  },
 
   // ==================== Admin Routes ====================
   {

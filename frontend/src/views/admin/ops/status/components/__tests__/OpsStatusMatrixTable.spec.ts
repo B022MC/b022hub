@@ -38,6 +38,7 @@ const DataTableStub = defineComponent({
         :key="row.model"
         class="data-table-row"
       >
+        <slot name="cell-cache_hit_rate" :row="row" :value="row.cache_hit_rate" />
         <slot name="cell-availability" :row="row" :value="row.availability" />
         <slot name="cell-timeline" :row="row" :value="row.buckets" />
       </div>
@@ -60,6 +61,7 @@ const rows: OpsStatusMatrixRow[] = [
     error_count: 0,
     excluded_error_count: 2,
     availability: null,
+    cache_hit_rate: null,
     last_checked_at: null,
     last_success_at: null,
     last_latency_ms: null,
@@ -103,5 +105,23 @@ describe('OpsStatusMatrixTable', () => {
 
     expect(wrapper.get('[data-testid="availability-tooltip"]').attributes('title')).toBe('已排除失败：2')
     expect(wrapper.get('[data-testid="availability-value"]').text()).toBe('-')
+  })
+
+  it('renders cache hit rate when present', () => {
+    const wrapper = mount(OpsStatusMatrixTable, {
+      props: {
+        rows: [{ ...rows[0], cache_hit_rate: 0.2 }],
+        timeRange: '90m'
+      },
+      global: {
+        stubs: {
+          DataTable: DataTableStub,
+          OpsStatusTimeline: TimelineStub,
+          PlatformIcon: true
+        }
+      }
+    })
+
+    expect(wrapper.get('[data-testid="cache-hit-rate-value"]').text()).toBe('20.00%')
   })
 })

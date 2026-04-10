@@ -3593,6 +3593,7 @@ export default {
           platform: 'Platform',
           group: 'Group',
           model: 'Model',
+          cacheHitRate: 'Cache Hit Rate',
           lastLatency: 'Last Latency',
           lastChecked: 'Last Checked',
           availability: 'Availability',
