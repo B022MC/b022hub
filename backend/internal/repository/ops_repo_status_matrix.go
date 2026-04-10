@@ -194,8 +194,8 @@ latest_success AS (
     group_id,
     model,
     duration_ms
-  FROM usage_base
-  ORDER BY platform, group_id, model, created_at DESC, id DESC
+  FROM usage_base ub
+  ORDER BY ub.platform, ub.group_id, ub.model, ub.created_at DESC, ub.id DESC
 ),
 error_base AS (
   SELECT
@@ -293,7 +293,7 @@ func (r *opsRepository) queryStatusMatrixBuckets(ctx context.Context, filter *se
 	usageWhere, usageArgs, next := buildStatusMatrixUsageWhere(filter, start, end, 1)
 	errorWhere, errorArgs, _ := buildStatusMatrixErrorWhere(filter, start, end, next)
 	usageBucketExpr := opsBucketExprForUsage(filter.BucketSeconds)
-	errorBucketExpr := opsBucketExprForError(filter.BucketSeconds)
+	errorBucketExpr := opsBucketExprForTimestampColumn(filter.BucketSeconds, "e.created_at")
 
 	q := `
 WITH usage_base AS (

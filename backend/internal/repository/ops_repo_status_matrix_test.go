@@ -95,6 +95,19 @@ func TestOpsRepository_GetStatusMatrix(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestOpsBucketExprForTimestampColumnUsesQualifiedColumn(t *testing.T) {
+	require.Equal(
+		t,
+		"to_timestamp(floor(extract(epoch from e.created_at) / 300) * 300)",
+		opsBucketExprForTimestampColumn(300, "e.created_at"),
+	)
+	require.Equal(
+		t,
+		"date_trunc('hour', e.created_at)",
+		opsBucketExprForTimestampColumn(3600, "e.created_at"),
+	)
+}
+
 func TestOpsRepository_GetStatusMatrixFiltersAndExcludedOnlyRows(t *testing.T) {
 	db, mock := newSQLMock(t)
 	repo := &opsRepository{db: db}

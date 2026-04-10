@@ -332,25 +332,25 @@ LIMIT $4`
 }
 
 func opsBucketExprForUsage(bucketSeconds int) string {
-	switch bucketSeconds {
-	case 3600:
-		return "date_trunc('hour', ul.created_at)"
-	case 300:
-		// 5-minute buckets in UTC.
-		return "to_timestamp(floor(extract(epoch from ul.created_at) / 300) * 300)"
-	default:
-		return "date_trunc('minute', ul.created_at)"
-	}
+	return opsBucketExprForTimestampColumn(bucketSeconds, "ul.created_at")
 }
 
 func opsBucketExprForError(bucketSeconds int) string {
+	return opsBucketExprForTimestampColumn(bucketSeconds, "created_at")
+}
+
+func opsBucketExprForTimestampColumn(bucketSeconds int, column string) string {
+	column = strings.TrimSpace(column)
+	if column == "" {
+		column = "created_at"
+	}
 	switch bucketSeconds {
 	case 3600:
-		return "date_trunc('hour', created_at)"
+		return fmt.Sprintf("date_trunc('hour', %s)", column)
 	case 300:
-		return "to_timestamp(floor(extract(epoch from created_at) / 300) * 300)"
+		return fmt.Sprintf("to_timestamp(floor(extract(epoch from %s) / 300) * 300)", column)
 	default:
-		return "date_trunc('minute', created_at)"
+		return fmt.Sprintf("date_trunc('minute', %s)", column)
 	}
 }
 

@@ -157,6 +157,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
 import VersionBadge from '@/components/common/VersionBadge.vue'
+import { isSidebarPathActive } from '@/components/layout/sidebarPath'
 import { sanitizeSvg } from '@/utils/sanitize'
 
 interface NavItem {
@@ -688,24 +689,13 @@ function handleMenuItemClick(itemPath: string) {
 }
 
 function isActive(path: string): boolean {
-  if (route.path === path) {
-    return true
-  }
-  if (!route.path.startsWith(path + '/')) {
-    return false
-  }
-
   const allPaths = [
     ...adminNavItems.value.map((item) => item.path),
     ...personalNavItems.value.map((item) => item.path),
     ...userNavItems.value.map((item) => item.path)
   ]
 
-  return !allPaths.some((candidate) => (
-    candidate !== path &&
-    route.path.startsWith(candidate + '/') &&
-    candidate.length > path.length
-  ))
+  return isSidebarPathActive(route.path, path, allPaths)
 }
 
 // Fetch admin settings (for feature-gated nav items like Ops).
