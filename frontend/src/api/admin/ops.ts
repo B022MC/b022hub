@@ -266,6 +266,50 @@ export interface OpsDashboardSnapshotV2Response {
   error_trend: OpsErrorTrendResponse
 }
 
+export type OpsStatusMatrixTimeRange = '90m' | '24h'
+export type OpsStatusMatrixSort = 'availability_asc' | 'availability_desc' | 'last_checked_desc'
+export type OpsStatusMatrixBucketStatus = 'ok' | 'warn' | 'down' | 'nodata'
+
+export interface OpsStatusMatrixBucket {
+  bucket_start: string
+  bucket_end: string
+  success_count: number
+  error_count: number
+  excluded_error_count: number
+  status: OpsStatusMatrixBucketStatus
+}
+
+export interface OpsStatusMatrixRow {
+  platform: string
+  group_id?: number | null
+  group_name: string
+  model: string
+  success_count: number
+  error_count: number
+  excluded_error_count: number
+  availability?: number | null
+  last_checked_at?: string | null
+  last_success_at?: string | null
+  last_latency_ms?: number | null
+  buckets: OpsStatusMatrixBucket[]
+}
+
+export interface OpsStatusMatrixResponse {
+  start_time: string
+  end_time: string
+  bucket_seconds: number
+  time_range: OpsStatusMatrixTimeRange
+  rows: OpsStatusMatrixRow[]
+}
+
+export interface OpsStatusMatrixParams {
+  time_range?: OpsStatusMatrixTimeRange
+  platform?: string
+  group_id?: number | null
+  q?: string
+  sort?: OpsStatusMatrixSort
+}
+
 export type OpsOpenAITokenStatsTimeRange = '30m' | '1h' | '1d' | '15d' | '30d'
 
 export interface OpsOpenAITokenStatsItem {
@@ -1032,6 +1076,17 @@ export async function getDashboardSnapshotV2(
   return data
 }
 
+export async function getStatusMatrix(
+  params: OpsStatusMatrixParams,
+  options: OpsRequestOptions = {}
+): Promise<OpsStatusMatrixResponse> {
+  const { data } = await apiClient.get<OpsStatusMatrixResponse>('/admin/ops/dashboard/status-matrix', {
+    params,
+    signal: options.signal
+  })
+  return data
+}
+
 export async function getThroughputTrend(
   params: {
   time_range?: '5m' | '30m' | '1h' | '6h' | '24h'
@@ -1359,6 +1414,7 @@ async function updateMetricThresholds(thresholds: OpsMetricThresholds): Promise<
 export const opsAPI = {
   getDashboardSnapshotV2,
   getDashboardOverview,
+  getStatusMatrix,
   getThroughputTrend,
   getLatencyHistogram,
   getErrorTrend,

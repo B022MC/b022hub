@@ -486,6 +486,7 @@ export default {
     proxies: 'IP管理',
     redeemCodes: '兑换码',
     ops: '运维监控',
+    statusMonitor: '状态监控',
     promoCodes: '优惠码',
     settings: '系统设置',
     myAccount: '我的账户',
@@ -3725,6 +3726,7 @@ export default {
         '5m': '近5分钟',
         '30m': '近30分钟',
         '1h': '近1小时',
+        '90m': '近90分钟',
         '1d': '近1天',
         '15d': '近15天',
         '6h': '近6小时',
@@ -3732,6 +3734,44 @@ export default {
         '7d': '近7天',
         '30d': '近30天',
         custom: '自定义'
+      },
+      statusMatrix: {
+        title: '状态监控',
+        description: '基于真实请求的服务状态矩阵，按平台、分组和模型聚合近期可用性。',
+        eyebrow: '真实请求监控',
+        filters: {
+          searchPlaceholder: '搜索分组名或模型',
+          platform: '平台',
+          group: '分组'
+        },
+        summary: {
+          rows: '监控行数',
+          window: '观察窗口',
+          lastUpdated: '最近刷新'
+        },
+        table: {
+          platform: '平台',
+          group: '分组',
+          model: '模型',
+          lastLatency: '最近延迟',
+          lastChecked: '最近检查',
+          availability: '可用率',
+          timeline: '状态时间条',
+          excludedShort: '排除'
+        },
+        status: {
+          ok: '正常',
+          warn: '波动',
+          down: '异常',
+          nodata: '无数据'
+        },
+        tooltips: {
+          excludedErrors: '已排除失败：{count}',
+          timeline: '{status} · 成功 {success} · 失败 {error} · 排除 {excluded}'
+        },
+        errors: {
+          loadFailed: '加载状态矩阵失败'
+        }
       },
       openaiTokenStats: {
         title: 'OpenAI Token 请求统计',

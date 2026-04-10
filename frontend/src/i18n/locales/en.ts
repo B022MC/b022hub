@@ -486,6 +486,7 @@ export default {
     proxies: 'Proxies',
     redeemCodes: 'Redeem Codes',
     ops: 'Ops',
+    statusMonitor: 'Status Monitor',
     promoCodes: 'Promo Codes',
     settings: 'Settings',
     myAccount: 'My Account',
@@ -3566,12 +3567,51 @@ export default {
         '5m': 'Last 5 minutes',
         '30m': 'Last 30 minutes',
         '1h': 'Last 1 hour',
+        '90m': 'Last 90 minutes',
         '1d': 'Last 1 day',
         '15d': 'Last 15 days',
         '6h': 'Last 6 hours',
         '24h': 'Last 24 hours',
         '7d': 'Last 7 days',
         '30d': 'Last 30 days'
+      },
+      statusMatrix: {
+        title: 'Status Monitor',
+        description: 'A recent availability matrix built from real traffic, grouped by platform, group, and model.',
+        eyebrow: 'Real Request Monitoring',
+        filters: {
+          searchPlaceholder: 'Search group or model',
+          platform: 'Platform',
+          group: 'Group'
+        },
+        summary: {
+          rows: 'Rows',
+          window: 'Window',
+          lastUpdated: 'Last Updated'
+        },
+        table: {
+          platform: 'Platform',
+          group: 'Group',
+          model: 'Model',
+          lastLatency: 'Last Latency',
+          lastChecked: 'Last Checked',
+          availability: 'Availability',
+          timeline: 'Status Timeline',
+          excludedShort: 'Excluded'
+        },
+        status: {
+          ok: 'OK',
+          warn: 'Warn',
+          down: 'Down',
+          nodata: 'No Data'
+        },
+        tooltips: {
+          excludedErrors: 'Excluded failures: {count}',
+          timeline: '{status} · success {success} · error {error} · excluded {excluded}'
+        },
+        errors: {
+          loadFailed: 'Failed to load status matrix'
+        }
       },
       openaiTokenStats: {
         title: 'OpenAI Token Request Stats',

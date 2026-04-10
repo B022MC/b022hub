@@ -232,6 +232,26 @@ const ChartIcon = {
     )
 }
 
+const StatusMonitorIcon = {
+  render: () =>
+    h(
+      'svg',
+      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
+      [
+        h('path', {
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          d: 'M3.75 12h3.2l1.8-4.5 3.3 9 2.35-6h5.85'
+        }),
+        h('path', {
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          d: 'M4.5 6.75h15a1.5 1.5 0 011.5 1.5v7.5a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 15.75v-7.5a1.5 1.5 0 011.5-1.5z'
+        })
+      ]
+    )
+}
+
 const ModelsIcon = {
   render: () =>
     h(
@@ -598,7 +618,10 @@ const adminNavItems = computed((): NavItem[] => {
   const baseItems: NavItem[] = [
     { path: '/admin/dashboard', label: t('nav.dashboard'), icon: DashboardIcon },
     ...(adminSettingsStore.opsMonitoringEnabled
-      ? [{ path: '/admin/ops', label: t('nav.ops'), icon: ChartIcon }]
+      ? [
+          { path: '/admin/ops', label: t('nav.ops'), icon: ChartIcon },
+          { path: '/admin/ops/status', label: t('nav.statusMonitor'), icon: StatusMonitorIcon }
+        ]
       : []),
     { path: '/admin/users', label: t('nav.users'), icon: UsersIcon, hideInSimpleMode: true },
     { path: '/admin/groups', label: t('nav.groups'), icon: FolderIcon, hideInSimpleMode: true },
@@ -665,7 +688,24 @@ function handleMenuItemClick(itemPath: string) {
 }
 
 function isActive(path: string): boolean {
-  return route.path === path || route.path.startsWith(path + '/')
+  if (route.path === path) {
+    return true
+  }
+  if (!route.path.startsWith(path + '/')) {
+    return false
+  }
+
+  const allPaths = [
+    ...adminNavItems.value.map((item) => item.path),
+    ...personalNavItems.value.map((item) => item.path),
+    ...userNavItems.value.map((item) => item.path)
+  ]
+
+  return !allPaths.some((candidate) => (
+    candidate !== path &&
+    route.path.startsWith(candidate + '/') &&
+    candidate.length > path.length
+  ))
 }
 
 // Fetch admin settings (for feature-gated nav items like Ops).
